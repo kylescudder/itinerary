@@ -1,5 +1,6 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import type { TouchEvent as ReactTouchEvent } from 'react'
 import {
   createItineraryItem,
   getItineraryItems,
@@ -23,6 +24,10 @@ function Itinerary() {
   const [items, setItems] = useState<ItineraryItem[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [pullDistance, setPullDistance] = useState(0)
+  const [isRefreshing, setIsRefreshing] = useState(false)
+  const pullStartY = useRef<number | null>(null)
+  const isPulling = useRef(false)
   const [title, setTitle] = useState('')
   const [notes, setNotes] = useState('')
   const [type, setType] = useState(itemTypes[0])
@@ -80,15 +85,64 @@ function Itinerary() {
     }
   }, [trip])
 
+  const refreshItems = useCallback(async () => {
+    if (!trip) return
+    setIsRefreshing(true)
+    try {
+      await loadItems()
+    } finally {
+      setIsRefreshing(false)
+    }
+  }, [trip, loadItems])
+
   useEffect(() => {
     if (!trip) return
     loadItems()
   }, [trip, loadItems])
 
   useOfflineSync(() => {
-    if (!trip) return
-    loadItems()
+    refreshItems()
   })
+
+  const handleTouchStart = useCallback(
+    (event: ReactTouchEvent) => {
+      if (isRefreshing || typeof window === 'undefined') return
+      const scrollTop =
+        window.scrollY ||
+        document.documentElement.scrollTop ||
+        document.body.scrollTop ||
+        0
+      if (scrollTop > 0) return
+      const start = event.touches[0]?.clientY
+      if (start == null) return
+      pullStartY.current = start
+      isPulling.current = true
+    },
+    [isRefreshing]
+  )
+
+  const handleTouchMove = useCallback((event: ReactTouchEvent) => {
+    if (!isPulling.current || pullStartY.current == null) return
+    const current = event.touches[0]?.clientY
+    if (current == null) return
+    const delta = current - pullStartY.current
+    if (delta <= 0) {
+      setPullDistance(0)
+      return
+    }
+    setPullDistance(Math.min(delta, 110))
+  }, [])
+
+  const handleTouchEnd = useCallback(async () => {
+    if (!isPulling.current) return
+    isPulling.current = false
+    pullStartY.current = null
+    if (pullDistance > 70) {
+      setPullDistance(60)
+      await refreshItems()
+    }
+    setPullDistance(0)
+  }, [pullDistance, refreshItems])
 
   useEffect(() => {
     let mounted = true
@@ -450,7 +504,26 @@ function Itinerary() {
   }
 
   return (
-    <main className="page-shell">
+    <main
+      className="page-shell"
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+      onTouchCancel={handleTouchEnd}
+    >
+      <div
+        className="flex items-center justify-center text-[10px] uppercase tracking-[0.3em] text-[color:var(--ink-600)] transition"
+        style={{
+          height: pullDistance ? Math.min(pullDistance, 60) : 0,
+          opacity: pullDistance || isRefreshing ? 1 : 0,
+        }}
+      >
+        {isRefreshing
+          ? 'Refreshing itinerary...'
+          : pullDistance > 70
+            ? 'Release to refresh'
+            : 'Pull to refresh'}
+      </div>
       <div className="mx-auto grid max-w-6xl gap-8 lg:grid-cols-[1.1fr_0.9fr]">
         <section className="space-y-6">
           <div className="section-shell px-8 py-8">
