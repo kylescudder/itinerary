@@ -13,18 +13,22 @@ import {
   addCachedSuggestion,
   cacheItineraryItems,
   cacheSuggestions,
-  cacheTrip,
   enqueueAction,
   getPendingActions,
   isOffline,
+  readActiveTripId,
   readCachedItineraryItems,
   readCachedSuggestions,
-  readCachedTrip,
+  readCachedTripById,
+  readCachedTrips,
   removePendingAction,
   replaceCachedItineraryItem,
   replaceCachedSuggestion,
   savePendingActions,
+  setActiveTripId,
   updateCachedItineraryItem,
+  cacheTrips,
+  upsertCachedTrip,
 } from './offline'
 
 async function requireUserId() {
@@ -48,20 +52,48 @@ const isNetworkError = (error: unknown) => {
   return /fetch|network|offline/i.test(message)
 }
 
-export async function getTrip(): Promise<Trip | null> {
+export async function getTrips(): Promise<Trip[]> {
   if (isOffline()) {
-    const cached = readCachedTrip()
-    if (cached) return cached
+    const cached = readCachedTrips()
+    if (cached.length) return cached
   }
-  const { data, error } = await supabase.from('trip').select('*').limit(1).maybeSingle()
+  const { data, error } = await supabase
+    .from('trip')
+    .select('*')
+    .order('created_at', { ascending: false })
   if (error) {
     if (isOffline()) {
-      return readCachedTrip()
+      return readCachedTrips()
     }
     throw new Error(error.message)
   }
-  cacheTrip(data ?? null)
-  return data ?? null
+  const trips = data || []
+  cacheTrips(trips)
+  return trips
+}
+
+export async function getTrip(): Promise<Trip | null> {
+  const cachedId = readActiveTripId()
+  if (isOffline()) {
+    if (cachedId) {
+      const cached = readCachedTripById(cachedId)
+      if (cached) return cached
+    }
+    return readCachedTrips()[0] || null
+  }
+
+  const trips = await getTrips()
+  if (!trips.length) {
+    setActiveTripId(null)
+    return null
+  }
+
+  const selected = cachedId
+    ? trips.find((trip) => trip.id === cachedId)
+    : null
+  const active = selected || trips[0]
+  setActiveTripId(active.id)
+  return active
 }
 
 export async function createTrip(name: string): Promise<Trip> {
@@ -110,7 +142,8 @@ export async function createTrip(name: string): Promise<Trip> {
   if (!created) {
     throw new Error(lastError || 'Unable to create trip.')
   }
-
+  setActiveTripId(created.id)
+  upsertCachedTrip(created)
   return created
 }
 
@@ -137,7 +170,8 @@ export async function joinTrip(code: string): Promise<Trip> {
   if (memberError) {
     throw new Error(memberError.message)
   }
-
+  setActiveTripId(trip.id)
+  upsertCachedTrip(trip)
   return trip
 }
 
@@ -160,25 +194,26 @@ export async function updateTripName(id: string, name: string): Promise<Trip> {
   return data
 }
 
-export async function getItineraryItems(): Promise<ItineraryItem[]> {
+export async function getItineraryItems(tripId: string): Promise<ItineraryItem[]> {
   if (isOffline()) {
-    const cached = readCachedItineraryItems()
+    const cached = readCachedItineraryItems(tripId)
     if (cached.length) return cached
   }
   const { data, error } = await supabase
     .from('itinerary_item')
     .select('*')
+    .eq('trip_id', tripId)
     .order('start_time', { ascending: true, nullsFirst: false })
 
   if (error) {
     if (isOffline()) {
-      return readCachedItineraryItems()
+      return readCachedItineraryItems(tripId)
     }
     throw new Error(error.message)
   }
 
   const items = data || []
-  cacheItineraryItems(items)
+  cacheItineraryItems(tripId, items)
   return items
 }
 
@@ -201,7 +236,7 @@ export async function createItineraryItem(
       localId,
       createdAt: now,
     })
-    addCachedItineraryItem(localItem)
+    addCachedItineraryItem(payload.trip_id, localItem)
     return localItem
   }
   const { data, error } = await supabase
@@ -214,7 +249,7 @@ export async function createItineraryItem(
     throw new Error(error.message)
   }
 
-  addCachedItineraryItem(data)
+  addCachedItineraryItem(payload.trip_id, data)
   return data
 }
 
@@ -235,7 +270,7 @@ export async function updateItineraryItem(
       payload: { id, updates },
       createdAt: updatedAt,
     })
-    updateCachedItineraryItem(id, updates, updatedAt)
+    updateCachedItineraryItem(current.trip_id, id, updates, updatedAt)
     return updated
   }
   const { data, error } = await supabase
@@ -253,29 +288,30 @@ export async function updateItineraryItem(
     throw new Error('Itinerary item not found.')
   }
 
-  updateCachedItineraryItem(id, updates, data.updated_at)
+  updateCachedItineraryItem(data.trip_id, id, updates, data.updated_at)
   return data
 }
 
-export async function getSuggestions(): Promise<PlaceSuggestion[]> {
+export async function getSuggestions(tripId: string): Promise<PlaceSuggestion[]> {
   if (isOffline()) {
-    const cached = readCachedSuggestions()
+    const cached = readCachedSuggestions(tripId)
     if (cached.length) return cached
   }
   const { data, error } = await supabase
     .from('place_suggestion')
     .select('*')
+    .eq('trip_id', tripId)
     .order('created_at', { ascending: false })
 
   if (error) {
     if (isOffline()) {
-      return readCachedSuggestions()
+      return readCachedSuggestions(tripId)
     }
     throw new Error(error.message)
   }
 
   const items = data || []
-  cacheSuggestions(items)
+  cacheSuggestions(tripId, items)
   return items
 }
 
@@ -297,7 +333,7 @@ export async function createSuggestion(
       localId,
       createdAt: now,
     })
-    addCachedSuggestion(localItem)
+    addCachedSuggestion(payload.trip_id, localItem)
     return localItem
   }
   const { data, error } = await supabase
@@ -310,7 +346,7 @@ export async function createSuggestion(
     throw new Error(error.message)
   }
 
-  addCachedSuggestion(data)
+  addCachedSuggestion(payload.trip_id, data)
   return data
 }
 
@@ -336,7 +372,7 @@ export async function flushPendingActions() {
           .select('*')
           .single()
         if (error) throw new Error(error.message)
-        replaceCachedItineraryItem(action.localId, data)
+        replaceCachedItineraryItem(action.payload.trip_id, action.localId, data)
       }
 
       if (action.type === 'updateItineraryItem') {
@@ -349,6 +385,7 @@ export async function flushPendingActions() {
         if (error) throw new Error(error.message)
         if (data) {
           updateCachedItineraryItem(
+            data.trip_id,
             action.payload.id,
             action.payload.updates,
             data.updated_at
@@ -363,7 +400,7 @@ export async function flushPendingActions() {
           .select('*')
           .single()
         if (error) throw new Error(error.message)
-        replaceCachedSuggestion(action.localId, data)
+        replaceCachedSuggestion(action.payload.trip_id, action.localId, data)
       }
 
       removePendingAction(action.id)

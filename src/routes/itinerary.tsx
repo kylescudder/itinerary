@@ -19,7 +19,7 @@ const itemTypes = ['activity', 'meal', 'travel', 'stay', 'other']
 function Itinerary() {
   const navigate = useNavigate()
   const { session, loading: authLoading } = useAuth()
-  const { trip, loading: tripLoading } = useTrip()
+  const { trip, trips, loading: tripLoading, setActiveTrip } = useTrip()
   const [items, setItems] = useState<ItineraryItem[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -60,12 +60,18 @@ function Itinerary() {
     >
   >({})
 
+  useEffect(() => {
+    if (!trip) return
+    setItems([])
+    setTravelInfo({})
+  }, [trip?.id])
+
   const loadItems = useCallback(async () => {
     if (!trip) return
     setLoading(true)
     setError(null)
     try {
-      const data = await getItineraryItems()
+      const data = await getItineraryItems(trip.id)
       setItems(data)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unable to load itinerary.')
@@ -448,12 +454,32 @@ function Itinerary() {
       <div className="mx-auto grid max-w-6xl gap-8 lg:grid-cols-[1.1fr_0.9fr]">
         <section className="space-y-6">
           <div className="section-shell px-8 py-8">
-            <p className="text-xs uppercase tracking-[0.35em] text-[color:var(--ink-600)]">
-              {trip.name}
-            </p>
-            <h1 className="font-display text-3xl text-[color:var(--ink-900)]">
-              Itinerary
-            </h1>
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <p className="text-xs uppercase tracking-[0.35em] text-[color:var(--ink-600)]">
+                  {trip.name}
+                </p>
+                <h1 className="font-display text-3xl text-[color:var(--ink-900)]">
+                  Itinerary
+                </h1>
+              </div>
+              {trips.length > 1 ? (
+                <label className="text-[10px] uppercase tracking-[0.3em] text-[color:var(--ink-600)]">
+                  Active trip
+                  <select
+                    value={trip.id}
+                    onChange={(event) => setActiveTrip(event.target.value)}
+                    className="mt-2 w-full rounded-2xl border border-[color:var(--sand-300)] bg-white px-3 py-2 text-sm normal-case tracking-normal text-[color:var(--ink-900)]"
+                  >
+                    {trips.map((entry) => (
+                      <option key={entry.id} value={entry.id}>
+                        {entry.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              ) : null}
+            </div>
           </div>
 
           {error ? (

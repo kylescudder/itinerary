@@ -9,7 +9,7 @@ export const Route = createFileRoute('/trip')({ component: TripSetup })
 function TripSetup() {
   const navigate = useNavigate()
   const { session, loading: authLoading } = useAuth()
-  const { trip, loading: tripLoading, refreshTrip } = useTrip()
+  const { trip, trips, loading: tripLoading, refreshTrip, setActiveTrip } = useTrip()
   const [mode, setMode] = useState<'create' | 'join'>('create')
   const [name, setName] = useState('')
   const [code, setCode] = useState('')
@@ -74,31 +74,50 @@ function TripSetup() {
     return null
   }
 
-  if (trip) {
-    return (
-      <main className="page-shell">
-        <div className="section-shell mx-auto max-w-3xl px-8 py-12">
-          <h1 className="font-display text-3xl text-[color:var(--ink-900)]">
-            Your trip is ready.
-          </h1>
-          <p className="mt-3 text-[color:var(--ink-600)]">
-            {trip.name} · Invite code {trip.code}
-          </p>
-          <button
-            type="button"
-            onClick={() => navigate({ to: '/itinerary' })}
-            className="focus-ring mt-6 rounded-full bg-[color:var(--sun-400)] px-6 py-3 text-sm font-semibold text-[color:var(--ink-900)]"
-          >
-            Go to itinerary
-          </button>
-        </div>
-      </main>
-    )
-  }
-
   return (
     <main className="page-shell">
       <div className="section-shell mx-auto max-w-3xl px-8 py-12">
+        {trips.length ? (
+          <div className="mb-10">
+            <p className="text-xs uppercase tracking-[0.35em] text-[color:var(--ink-600)]">
+              Your trips
+            </p>
+            <div className="mt-4 space-y-3">
+              {trips.map((entry) => (
+                <div
+                  key={entry.id}
+                  className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[color:var(--sand-300)] bg-white px-4 py-3"
+                >
+                  <div>
+                    <p className="text-sm font-semibold text-[color:var(--ink-900)]">
+                      {entry.name}
+                    </p>
+                    <p className="text-xs text-[color:var(--ink-600)]">
+                      Invite code {entry.code}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {trip?.id === entry.id ? (
+                      <span className="rounded-full bg-[color:var(--sand-200)] px-3 py-1 text-xs font-semibold text-[color:var(--ink-700)]">
+                        Active
+                      </span>
+                    ) : null}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveTrip(entry.id)
+                        navigate({ to: '/itinerary' })
+                      }}
+                      className="focus-ring rounded-full border border-[color:var(--sand-300)] px-4 py-2 text-xs font-semibold text-[color:var(--ink-700)]"
+                    >
+                      View itinerary
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : null}
         <div className="mb-8">
           <p className="text-xs uppercase tracking-[0.35em] text-[color:var(--ink-600)]">
             Set up your trip
