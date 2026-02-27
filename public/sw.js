@@ -1,7 +1,9 @@
-const CACHE_VERSION = 'v1'
+const CACHE_VERSION = 'v2'
 const CACHE_NAME = `itinerary-shell-${CACHE_VERSION}`
+const OFFLINE_FALLBACK_URL = '/offline.html'
 const STATIC_ASSETS = [
   '/',
+  OFFLINE_FALLBACK_URL,
   '/manifest.json',
   '/favicon.ico',
   '/logo192.png',
@@ -49,7 +51,7 @@ const networkFirst = async (request) => {
     return response
   } catch {
     const cached = await caches.match(request)
-    return cached || caches.match('/')
+    return cached || caches.match('/') || caches.match(OFFLINE_FALLBACK_URL)
   }
 }
 
@@ -65,5 +67,15 @@ self.addEventListener('fetch', (event) => {
     return
   }
 
-  event.respondWith(cacheFirst(request))
+  if (
+    request.destination === 'script' ||
+    request.destination === 'style' ||
+    request.destination === 'image' ||
+    request.destination === 'font'
+  ) {
+    event.respondWith(cacheFirst(request))
+    return
+  }
+
+  event.respondWith(networkFirst(request))
 })
