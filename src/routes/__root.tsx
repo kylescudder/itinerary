@@ -1,9 +1,12 @@
 import { HeadContent, Scripts, createRootRoute } from '@tanstack/react-router'
 import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
 import { TanStackDevtools } from '@tanstack/react-devtools'
+import { useEffect, type ReactNode } from 'react'
 
 import Header from '../components/Header'
 import { AuthProvider } from '../lib/auth'
+import { setupOfflineSync } from '../lib/offlineSync'
+import { registerServiceWorker } from '../lib/serviceWorker'
 
 import appCss from '../styles.css?url'
 
@@ -20,18 +23,31 @@ export const Route = createRootRoute({
       {
         title: 'Itinerary',
       },
+      {
+        name: 'theme-color',
+        content: '#f7f1e6',
+      },
     ],
     links: [
       {
         rel: 'stylesheet',
         href: appCss,
       },
+      {
+        rel: 'manifest',
+        href: '/manifest.json',
+      },
     ],
   }),
   shellComponent: RootDocument,
 })
 
-function RootDocument({ children }: { children: React.ReactNode }) {
+function RootDocument({ children }: { children: ReactNode }) {
+  useEffect(() => {
+    registerServiceWorker()
+    return setupOfflineSync()
+  }, [])
+
   return (
     <html lang="en">
       <head>

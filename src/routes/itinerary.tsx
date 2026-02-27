@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   createItineraryItem,
   getItineraryItems,
@@ -7,6 +7,7 @@ import {
 } from '../lib/api'
 import { useAuth } from '../lib/auth'
 import { useTrip } from '../hooks/useTrip'
+import { useOfflineSync } from '../hooks/useOfflineSync'
 import type { ItineraryItem } from '../lib/types'
 import { formatDateLabel, formatTimeLabel, groupItemsByDate } from '../lib/utils'
 import { loadGoogleMaps } from '../lib/googleMaps'
@@ -59,22 +60,29 @@ function Itinerary() {
     >
   >({})
 
+  const loadItems = useCallback(async () => {
+    if (!trip) return
+    setLoading(true)
+    setError(null)
+    try {
+      const data = await getItineraryItems()
+      setItems(data)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unable to load itinerary.')
+    } finally {
+      setLoading(false)
+    }
+  }, [trip])
+
   useEffect(() => {
     if (!trip) return
-    const load = async () => {
-      setLoading(true)
-      setError(null)
-      try {
-        const data = await getItineraryItems()
-        setItems(data)
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Unable to load itinerary.')
-      } finally {
-        setLoading(false)
-      }
-    }
-    load()
-  }, [trip])
+    loadItems()
+  }, [trip, loadItems])
+
+  useOfflineSync(() => {
+    if (!trip) return
+    loadItems()
+  })
 
   useEffect(() => {
     let mounted = true
@@ -314,7 +322,11 @@ function Itinerary() {
 
   const handleToggleDone = async (item: ItineraryItem) => {
     try {
-      const updated = await updateItineraryItem(item.id, { done: !item.done })
+      const updated = await updateItineraryItem(
+        item.id,
+        { done: !item.done },
+        item
+      )
       setItems((prev) =>
         prev.map((entry) => (entry.id === updated.id ? updated : entry))
       )
@@ -363,6 +375,39 @@ function Itinerary() {
         }
       }
     )
+  }
+
+  const buildDirectionsUrl = (
+    origin: ItineraryItem,
+    destination: ItineraryItem,
+    mode: 'walk' | 'transit'
+  ) => {
+    const originValue =
+      origin.lat != null && origin.lng != null
+        ? `${origin.lat},${origin.lng}`
+        : origin.place_name || origin.title
+    const destinationValue =
+      destination.lat != null && destination.lng != null
+        ? `${destination.lat},${destination.lng}`
+        : destination.place_name || destination.title
+
+    const isAppleDevice = /iPad|iPhone|iPod|Macintosh/i.test(
+      navigator.userAgent
+    )
+
+    if (isAppleDevice) {
+      const flag = mode === 'transit' ? 'r' : 'w'
+      return `https://maps.apple.com/?saddr=${encodeURIComponent(
+        originValue
+      )}&daddr=${encodeURIComponent(destinationValue)}&dirflg=${flag}`
+    }
+
+    const travelMode = mode === 'transit' ? 'transit' : 'walking'
+    return `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(
+      originValue
+    )}&destination=${encodeURIComponent(
+      destinationValue
+    )}&travelmode=${travelMode}`
   }
 
   if (authLoading || tripLoading) {
@@ -474,7 +519,16 @@ function Itinerary() {
                         </div>
 
                         {next ? (
-                          <div className="rounded-2xl border border-dashed border-[color:var(--sand-300)] px-4 py-3 text-xs text-[color:var(--ink-600)]">
+                          <a
+                            href={buildDirectionsUrl(
+                              item,
+                              next,
+                              info?.mode || 'walk'
+                            )}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="block rounded-2xl border border-dashed border-[color:var(--sand-300)] px-4 py-3 text-xs text-[color:var(--ink-600)] transition hover:border-[color:var(--sun-400)] hover:text-[color:var(--ink-900)]"
+                          >
                             {hasCoords ? (
                               info ? (
                                 <span>
@@ -492,7 +546,7 @@ function Itinerary() {
                             ) : (
                               <span>Add locations to see travel time.</span>
                             )}
-                          </div>
+                          </a>
                         ) : null}
                       </div>
                     )

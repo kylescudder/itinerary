@@ -21,6 +21,26 @@ export type ItineraryItem = {
   updated_at: string
 }
 
+export type CreateItineraryItemPayload = {
+  trip_id: string
+  type: ItineraryItem['type']
+  title: string
+  notes: string | null
+  start_time: string | null
+  done: boolean
+  lat: number | null
+  lng: number | null
+  place_name?: string | null
+  place_id?: string | null
+}
+
+export type UpdateItineraryItemPayload = Partial<
+  Pick<
+    ItineraryItem,
+    'done' | 'title' | 'notes' | 'start_time' | 'lat' | 'lng' | 'place_name' | 'place_id'
+  >
+>
+
 export type PlaceSuggestion = {
   id: string
   trip_id: string
@@ -32,4 +52,15 @@ export type PlaceSuggestion = {
   place_name?: string | null
   place_id?: string | null
   created_at: string
+}
+
+export type CreateSuggestionPayload = {
+  trip_id: string
+  type: PlaceSuggestion['type']
+  title: string
+  notes: string | null
+  lat: number | null
+  lng: number | null
+  place_name?: string | null
+  place_id?: string | null
 }

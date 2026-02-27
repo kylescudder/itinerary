@@ -1,8 +1,9 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { createSuggestion, getSuggestions } from '../lib/api'
 import { useAuth } from '../lib/auth'
 import { useTrip } from '../hooks/useTrip'
+import { useOfflineSync } from '../hooks/useOfflineSync'
 import type { PlaceSuggestion } from '../lib/types'
 
 export const Route = createFileRoute('/suggestions')({ component: Suggestions })
@@ -28,22 +29,29 @@ function Suggestions() {
     }
   }, [authLoading, isAuthed, navigate])
 
+  const loadSuggestions = useCallback(async () => {
+    if (!trip) return
+    setLoading(true)
+    setError(null)
+    try {
+      const data = await getSuggestions()
+      setItems(data)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unable to load suggestions.')
+    } finally {
+      setLoading(false)
+    }
+  }, [trip])
+
   useEffect(() => {
     if (!trip) return
-    const load = async () => {
-      setLoading(true)
-      setError(null)
-      try {
-        const data = await getSuggestions()
-        setItems(data)
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Unable to load suggestions.')
-      } finally {
-        setLoading(false)
-      }
-    }
-    load()
-  }, [trip])
+    loadSuggestions()
+  }, [trip, loadSuggestions])
+
+  useOfflineSync(() => {
+    if (!trip) return
+    loadSuggestions()
+  })
 
   const handleAdd = async () => {
     if (!trip) return

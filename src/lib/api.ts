@@ -1,6 +1,31 @@
 import { supabase } from './supabase'
-import type { ItineraryItem, PlaceSuggestion, Trip } from './types'
+import type {
+  CreateItineraryItemPayload,
+  CreateSuggestionPayload,
+  ItineraryItem,
+  PlaceSuggestion,
+  Trip,
+  UpdateItineraryItemPayload,
+} from './types'
 import { generateTripCode } from './utils'
+import {
+  addCachedItineraryItem,
+  addCachedSuggestion,
+  cacheItineraryItems,
+  cacheSuggestions,
+  cacheTrip,
+  enqueueAction,
+  getPendingActions,
+  isOffline,
+  readCachedItineraryItems,
+  readCachedSuggestions,
+  readCachedTrip,
+  removePendingAction,
+  replaceCachedItineraryItem,
+  replaceCachedSuggestion,
+  savePendingActions,
+  updateCachedItineraryItem,
+} from './offline'
 
 async function requireUserId() {
   const { data, error } = await supabase.auth.getUser()
@@ -10,11 +35,32 @@ async function requireUserId() {
   return data.user.id
 }
 
+const createClientId = () => {
+  if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
+    return crypto.randomUUID()
+  }
+  return `${Date.now()}-${Math.random().toString(16).slice(2)}`
+}
+
+const isNetworkError = (error: unknown) => {
+  if (!error) return false
+  const message = error instanceof Error ? error.message : String(error)
+  return /fetch|network|offline/i.test(message)
+}
+
 export async function getTrip(): Promise<Trip | null> {
+  if (isOffline()) {
+    const cached = readCachedTrip()
+    if (cached) return cached
+  }
   const { data, error } = await supabase.from('trip').select('*').limit(1).maybeSingle()
   if (error) {
+    if (isOffline()) {
+      return readCachedTrip()
+    }
     throw new Error(error.message)
   }
+  cacheTrip(data ?? null)
   return data ?? null
 }
 
@@ -115,30 +161,49 @@ export async function updateTripName(id: string, name: string): Promise<Trip> {
 }
 
 export async function getItineraryItems(): Promise<ItineraryItem[]> {
+  if (isOffline()) {
+    const cached = readCachedItineraryItems()
+    if (cached.length) return cached
+  }
   const { data, error } = await supabase
     .from('itinerary_item')
     .select('*')
     .order('start_time', { ascending: true, nullsFirst: false })
 
   if (error) {
+    if (isOffline()) {
+      return readCachedItineraryItems()
+    }
     throw new Error(error.message)
   }
 
-  return data || []
+  const items = data || []
+  cacheItineraryItems(items)
+  return items
 }
 
-export async function createItineraryItem(payload: {
-  trip_id: string
-  type: ItineraryItem['type']
-  title: string
-  notes: string | null
-  start_time: string | null
-  done: boolean
-  lat: number | null
-  lng: number | null
-  place_name?: string | null
-  place_id?: string | null
-}): Promise<ItineraryItem> {
+export async function createItineraryItem(
+  payload: CreateItineraryItemPayload
+): Promise<ItineraryItem> {
+  if (isOffline()) {
+    const now = new Date().toISOString()
+    const localId = `local-${createClientId()}`
+    const localItem: ItineraryItem = {
+      id: localId,
+      created_at: now,
+      updated_at: now,
+      ...payload,
+    }
+    enqueueAction({
+      id: createClientId(),
+      type: 'createItineraryItem',
+      payload,
+      localId,
+      createdAt: now,
+    })
+    addCachedItineraryItem(localItem)
+    return localItem
+  }
   const { data, error } = await supabase
     .from('itinerary_item')
     .insert(payload)
@@ -149,18 +214,30 @@ export async function createItineraryItem(payload: {
     throw new Error(error.message)
   }
 
+  addCachedItineraryItem(data)
   return data
 }
 
 export async function updateItineraryItem(
   id: string,
-  updates: Partial<
-    Pick<
-      ItineraryItem,
-      'done' | 'title' | 'notes' | 'start_time' | 'lat' | 'lng' | 'place_name' | 'place_id'
-    >
-  >
+  updates: UpdateItineraryItemPayload,
+  current?: ItineraryItem
 ): Promise<ItineraryItem> {
+  if (isOffline()) {
+    if (!current) {
+      throw new Error('Unable to update offline without cached data.')
+    }
+    const updatedAt = new Date().toISOString()
+    const updated = { ...current, ...updates, updated_at: updatedAt }
+    enqueueAction({
+      id: createClientId(),
+      type: 'updateItineraryItem',
+      payload: { id, updates },
+      createdAt: updatedAt,
+    })
+    updateCachedItineraryItem(id, updates, updatedAt)
+    return updated
+  }
   const { data, error } = await supabase
     .from('itinerary_item')
     .update(updates)
@@ -176,32 +253,53 @@ export async function updateItineraryItem(
     throw new Error('Itinerary item not found.')
   }
 
+  updateCachedItineraryItem(id, updates, data.updated_at)
   return data
 }
 
 export async function getSuggestions(): Promise<PlaceSuggestion[]> {
+  if (isOffline()) {
+    const cached = readCachedSuggestions()
+    if (cached.length) return cached
+  }
   const { data, error } = await supabase
     .from('place_suggestion')
     .select('*')
     .order('created_at', { ascending: false })
 
   if (error) {
+    if (isOffline()) {
+      return readCachedSuggestions()
+    }
     throw new Error(error.message)
   }
 
-  return data || []
+  const items = data || []
+  cacheSuggestions(items)
+  return items
 }
 
-export async function createSuggestion(payload: {
-  trip_id: string
-  type: PlaceSuggestion['type']
-  title: string
-  notes: string | null
-  lat: number | null
-  lng: number | null
-  place_name?: string | null
-  place_id?: string | null
-}): Promise<PlaceSuggestion> {
+export async function createSuggestion(
+  payload: CreateSuggestionPayload
+): Promise<PlaceSuggestion> {
+  if (isOffline()) {
+    const now = new Date().toISOString()
+    const localId = `local-${createClientId()}`
+    const localItem: PlaceSuggestion = {
+      id: localId,
+      created_at: now,
+      ...payload,
+    }
+    enqueueAction({
+      id: createClientId(),
+      type: 'createSuggestion',
+      payload,
+      localId,
+      createdAt: now,
+    })
+    addCachedSuggestion(localItem)
+    return localItem
+  }
   const { data, error } = await supabase
     .from('place_suggestion')
     .insert(payload)
@@ -212,5 +310,81 @@ export async function createSuggestion(payload: {
     throw new Error(error.message)
   }
 
+  addCachedSuggestion(data)
   return data
+}
+
+export async function flushPendingActions() {
+  if (isOffline()) {
+    return { flushed: 0, remaining: getPendingActions().length }
+  }
+  const pending = getPendingActions()
+  if (!pending.length) {
+    return { flushed: 0, remaining: 0 }
+  }
+
+  const remaining = [] as typeof pending
+  let flushed = 0
+
+  for (let i = 0; i < pending.length; i += 1) {
+    const action = pending[i]
+    try {
+      if (action.type === 'createItineraryItem') {
+        const { data, error } = await supabase
+          .from('itinerary_item')
+          .insert(action.payload)
+          .select('*')
+          .single()
+        if (error) throw new Error(error.message)
+        replaceCachedItineraryItem(action.localId, data)
+      }
+
+      if (action.type === 'updateItineraryItem') {
+        const { data, error } = await supabase
+          .from('itinerary_item')
+          .update(action.payload.updates)
+          .eq('id', action.payload.id)
+          .select('*')
+          .maybeSingle()
+        if (error) throw new Error(error.message)
+        if (data) {
+          updateCachedItineraryItem(
+            action.payload.id,
+            action.payload.updates,
+            data.updated_at
+          )
+        }
+      }
+
+      if (action.type === 'createSuggestion') {
+        const { data, error } = await supabase
+          .from('place_suggestion')
+          .insert(action.payload)
+          .select('*')
+          .single()
+        if (error) throw new Error(error.message)
+        replaceCachedSuggestion(action.localId, data)
+      }
+
+      removePendingAction(action.id)
+      flushed += 1
+    } catch (err) {
+      if (isOffline() || isNetworkError(err)) {
+        remaining.push(...pending.slice(i))
+        break
+      }
+      console.warn('Offline sync failed', err)
+      removePendingAction(action.id)
+    }
+  }
+
+  if (remaining.length) {
+    savePendingActions(remaining)
+  }
+
+  if (flushed > 0 && typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('offline-sync:complete'))
+  }
+
+  return { flushed, remaining: remaining.length }
 }
