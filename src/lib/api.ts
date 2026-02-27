@@ -148,12 +148,8 @@ export async function createTrip(name: string): Promise<Trip> {
 }
 
 export async function joinTrip(code: string): Promise<Trip> {
-  const userId = await requireUserId()
-  const { data: trip, error } = await supabase
-    .from('trip')
-    .select('*')
-    .eq('code', code)
-    .maybeSingle()
+  await requireUserId()
+  const { data: trip, error } = await supabase.rpc('join_trip', { invite_code: code })
 
   if (error) {
     throw new Error(error.message)
@@ -161,14 +157,6 @@ export async function joinTrip(code: string): Promise<Trip> {
 
   if (!trip) {
     throw new Error('Trip not found.')
-  }
-
-  const { error: memberError } = await supabase
-    .from('trip_members')
-    .upsert({ trip_id: trip.id, user_id: userId, role: 'member' }, { onConflict: 'trip_id,user_id' })
-
-  if (memberError) {
-    throw new Error(memberError.message)
   }
   setActiveTripId(trip.id)
   upsertCachedTrip(trip)

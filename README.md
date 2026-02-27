@@ -13,6 +13,7 @@ cp .env.example .env
 ```
 VITE_SUPABASE_URL=https://bqcfoqsfnfyajenlskmj.supabase.co
 VITE_SUPABASE_ANON_KEY=...
+VITE_SITE_URL=http://localhost:3000
 VITE_GOOGLE_MAPS_API_KEY=...
 ```
 
@@ -28,6 +29,8 @@ Add these redirect URLs in Supabase Auth settings:
 
 - `http://localhost:3000/login`
 - `https://itinerary.kylescudder.co.uk/login`
+
+If you run the dev server on a different host/port, set `VITE_SITE_URL` to match and add the same URL to the Supabase allow list.
 
 ## Google Maps
 

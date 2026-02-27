@@ -1,0 +1,13 @@
+{
+  "version": "5",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "5",
+      "when": 1761264000000,
+      "tag": "0000_enable_rls",
+      "breakpoints": true
+    }
+  ]
+}

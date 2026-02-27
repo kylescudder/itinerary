@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { useAuth } from '../lib/auth'
 import { useTrip } from '../hooks/useTrip'
 import { supabase } from '../lib/supabase'
+import { getAuthRedirectUrl } from '../lib/authRedirect'
 
 export const Route = createFileRoute('/')({ component: Home })
 
@@ -26,7 +27,7 @@ function Home() {
   const handleSignIn = async () => {
     setAuthError(null)
     setSigningIn(true)
-    const redirectTo = `${window.location.origin}/login`
+    const redirectTo = getAuthRedirectUrl('/login')
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: { redirectTo },

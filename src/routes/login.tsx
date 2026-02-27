@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
+import { getAuthRedirectUrl } from '../lib/authRedirect'
 import { useAuth } from '../lib/auth'
 
 export const Route = createFileRoute('/login')({ component: Login })
@@ -38,7 +39,7 @@ function Login() {
   const handleGoogleSignIn = async () => {
     setError(null)
     setWorking(true)
-    const redirectTo = `${window.location.origin}/login`
+    const redirectTo = getAuthRedirectUrl('/login')
     const { error: authError } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: { redirectTo },
