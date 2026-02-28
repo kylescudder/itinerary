@@ -25,13 +25,23 @@ export const Route = createRootRoute({
       },
       {
         name: 'theme-color',
-        content: '#f7f1e6',
+        content: '#f8edf0',
       },
     ],
     links: [
       {
         rel: 'stylesheet',
         href: appCss,
+      },
+      {
+        rel: 'icon',
+        type: 'image/x-icon',
+        href: '/favicon.ico',
+      },
+      {
+        rel: 'apple-touch-icon',
+        sizes: '192x192',
+        href: '/apple-touch-icon.png',
       },
       {
         rel: 'manifest',

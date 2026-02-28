@@ -3,20 +3,20 @@
 
 :root {
   color-scheme: light;
-  --sand-50: #fcf9f3;
-  --sand-100: #f7f1e6;
-  --sand-200: #efe4cf;
-  --sand-300: #e5d5b3;
-  --sun-400: #f2c14e;
-  --sun-500: #e9a93c;
+  --sand-50: #fef9fa;
+  --sand-100: #f8edf0;
+  --sand-200: #f2dde3;
+  --sand-300: #eacbd5;
+  --sun-400: #eaa5b3;
+  --sun-500: #df8f9f;
   --ink-900: #1b1a17;
   --ink-800: #2c2a26;
   --ink-700: #3a3732;
   --ink-600: #57514a;
-  --clay-600: #8a5b4c;
-  --clay-500: #a16856;
+  --clay-600: #93616b;
+  --clay-500: #ab7380;
   --sage-500: #5c7a6b;
-  --cloud-50: #f5f2ea;
+  --cloud-50: #f6f1f3;
   --shadow-soft: 0 18px 40px rgba(25, 22, 18, 0.12);
   --shadow-card: 0 12px 30px rgba(25, 22, 18, 0.1);
 }
@@ -28,7 +28,7 @@
 body {
   @apply m-0;
   font-family: "Work Sans", "Trebuchet MS", "Segoe UI", sans-serif;
-  background: radial-gradient(circle at top, #fffaf0 0%, var(--sand-100) 45%, #efe4cf 100%);
+  background: radial-gradient(circle at top, #fef9fa 0%, var(--sand-100) 45%, #f2dde3 100%);
   color: var(--ink-800);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -43,15 +43,15 @@ body {
 }
 
 .glass-panel {
-  background: rgba(252, 249, 243, 0.9);
+  background: rgba(254, 249, 250, 0.9);
   box-shadow: var(--shadow-card);
-  border: 1px solid rgba(229, 213, 179, 0.6);
+  border: 1px solid rgba(234, 203, 213, 0.6);
   backdrop-filter: blur(16px);
 }
 
 .section-shell {
-  background: linear-gradient(135deg, rgba(247, 241, 230, 0.9), rgba(252, 249, 243, 0.95));
-  border: 1px solid rgba(229, 213, 179, 0.7);
+  background: linear-gradient(135deg, rgba(248, 237, 240, 0.9), rgba(254, 249, 250, 0.95));
+  border: 1px solid rgba(234, 203, 213, 0.7);
   border-radius: 24px;
   box-shadow: var(--shadow-soft);
 }
@@ -70,7 +70,7 @@ body {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
-  background: radial-gradient(circle at top, #fffaf0 0%, var(--sand-100) 45%, #efe4cf 100%);
+  background: radial-gradient(circle at top, #fef9fa 0%, var(--sand-100) 45%, #f2dde3 100%);
 }
 
 .app-content {
@@ -86,8 +86,8 @@ body {
   justify-content: space-between;
   gap: 16px;
   padding: 16px 20px;
-  background: rgba(252, 249, 243, 0.96);
-  border-bottom: 1px solid rgba(229, 213, 179, 0.6);
+  background: rgba(254, 249, 250, 0.96);
+  border-bottom: 1px solid rgba(234, 203, 213, 0.6);
   backdrop-filter: blur(12px);
 }
 
@@ -98,7 +98,7 @@ body {
 
 .mobile-menu {
   border-radius: 14px;
-  border: 1px solid rgba(229, 213, 179, 0.8);
+  border: 1px solid rgba(234, 203, 213, 0.8);
   padding: 10px 14px;
   font-size: 0.85rem;
   font-weight: 600;
@@ -134,8 +134,8 @@ body {
   flex-direction: column;
   gap: 24px;
   padding: 24px 20px 22px;
-  background: linear-gradient(180deg, rgba(252, 249, 243, 0.98), rgba(247, 241, 230, 0.96));
-  border-right: 1px solid rgba(229, 213, 179, 0.7);
+  background: linear-gradient(180deg, rgba(254, 249, 250, 0.98), rgba(248, 237, 240, 0.96));
+  border-right: 1px solid rgba(234, 203, 213, 0.7);
   box-shadow: 20px 0 40px rgba(25, 22, 18, 0.12);
   z-index: 10;
   transform: translateX(-100%);
@@ -155,7 +155,7 @@ body {
 
 .sidebar-close {
   border-radius: 12px;
-  border: 1px solid rgba(229, 213, 179, 0.8);
+  border: 1px solid rgba(234, 203, 213, 0.8);
   padding: 8px 12px;
   font-size: 0.8rem;
   font-weight: 600;
@@ -172,8 +172,8 @@ body {
   height: 46px;
   width: 46px;
   border-radius: 18px;
-  background: radial-gradient(circle at top, #fff1c6, var(--sun-400));
-  box-shadow: 0 12px 22px rgba(242, 193, 78, 0.35);
+  background: radial-gradient(circle at top, var(--sand-50), var(--sun-400));
+  box-shadow: 0 12px 22px rgba(240, 103, 124, 0.35);
 }
 
 .sidebar-nav {
@@ -193,13 +193,13 @@ body {
 }
 
 .sidebar-link:hover {
-  background: rgba(229, 213, 179, 0.6);
+  background: rgba(234, 203, 213, 0.6);
   color: var(--ink-900);
   transform: translateX(2px);
 }
 
 .sidebar-link-active {
-  background: rgba(229, 213, 179, 0.9);
+  background: rgba(234, 203, 213, 0.9);
   color: var(--ink-900);
 }
 
@@ -226,7 +226,7 @@ body {
   gap: 12px;
   padding: 12px 14px;
   border-radius: 18px;
-  border: 1px solid rgba(229, 213, 179, 0.6);
+  border: 1px solid rgba(234, 203, 213, 0.6);
   background: rgba(255, 255, 255, 0.8);
   box-shadow: 0 10px 18px rgba(25, 22, 18, 0.08);
 }
@@ -277,7 +277,7 @@ body {
 
 .user-signout {
   border-radius: 14px;
-  border: 1px solid rgba(229, 213, 179, 0.8);
+  border: 1px solid rgba(234, 203, 213, 0.8);
   padding: 10px 14px;
   font-size: 0.85rem;
   font-weight: 600;
