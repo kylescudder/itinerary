@@ -9,9 +9,17 @@ export const Route = createFileRoute('/trip')({ component: TripSetup })
 function TripSetup() {
   const navigate = useNavigate()
   const { session, loading: authLoading } = useAuth()
-  const { trip, trips, loading: tripLoading, refreshTrip, setActiveTrip } = useTrip()
+  const {
+    trip,
+    trips,
+    loading: tripLoading,
+    refreshTrip,
+    setActiveTrip,
+  } = useTrip()
   const [mode, setMode] = useState<'create' | 'join'>('create')
   const [name, setName] = useState('')
+  const [startDate, setStartDate] = useState('')
+  const [endDate, setEndDate] = useState('')
   const [code, setCode] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [working, setWorking] = useState(false)
@@ -29,10 +37,17 @@ function TripSetup() {
       setError('Please add a trip name.')
       return
     }
+    if (startDate && endDate && endDate < startDate) {
+      setError('End date must be after the start date.')
+      return
+    }
     setWorking(true)
     setError(null)
     try {
-      await createTrip(name.trim())
+      await createTrip(name.trim(), {
+        startDate: startDate || null,
+        endDate: endDate || null,
+      })
       await refreshTrip()
       navigate({ to: '/itinerary' })
     } catch (err) {
@@ -64,7 +79,9 @@ function TripSetup() {
     return (
       <main className="page-shell">
         <div className="section-shell mx-auto max-w-3xl px-8 py-12">
-          <p className="text-sm text-[color:var(--ink-600)]">Loading your trip...</p>
+          <p className="text-sm text-[color:var(--ink-600)]">
+            Loading your trip...
+          </p>
         </div>
       </main>
     )
@@ -164,6 +181,27 @@ function TripSetup() {
                   className="mt-2 w-full rounded-2xl border border-[color:var(--sand-300)] bg-white px-4 py-3 text-sm"
                 />
               </label>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <label className="text-sm font-semibold text-[color:var(--ink-700)]">
+                  Start date
+                  <input
+                    type="date"
+                    value={startDate}
+                    onChange={(event) => setStartDate(event.target.value)}
+                    className="mt-2 w-full rounded-2xl border border-[color:var(--sand-300)] bg-white px-4 py-3 text-sm"
+                  />
+                </label>
+                <label className="text-sm font-semibold text-[color:var(--ink-700)]">
+                  End date
+                  <input
+                    type="date"
+                    min={startDate || undefined}
+                    value={endDate}
+                    onChange={(event) => setEndDate(event.target.value)}
+                    className="mt-2 w-full rounded-2xl border border-[color:var(--sand-300)] bg-white px-4 py-3 text-sm"
+                  />
+                </label>
+              </div>
               <button
                 type="button"
                 onClick={handleCreate}

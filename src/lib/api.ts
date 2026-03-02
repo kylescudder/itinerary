@@ -98,7 +98,13 @@ export async function getTrip(): Promise<Trip | null> {
   return active
 }
 
-export async function createTrip(name: string): Promise<Trip> {
+export async function createTrip(
+  name: string,
+  options?: {
+    startDate?: string | null
+    endDate?: string | null
+  },
+): Promise<Trip> {
   const userId = await requireUserId()
   let created: Trip | null = null
   let lastError: string | null = null
@@ -106,7 +112,13 @@ export async function createTrip(name: string): Promise<Trip> {
   for (let attempt = 0; attempt < 5; attempt += 1) {
     const id = crypto.randomUUID()
     const code = generateTripCode()
-    const { error } = await supabase.from('trip').insert({ id, name, code })
+    const { error } = await supabase.from('trip').insert({
+      id,
+      name,
+      code,
+      start_date: options?.startDate ?? null,
+      end_date: options?.endDate ?? null,
+    })
 
     if (error) {
       lastError = error.message

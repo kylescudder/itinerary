@@ -1,6 +1,6 @@
 import { Link, useRouterState } from '@tanstack/react-router'
 import { useAuth } from '../lib/auth'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 const navItems = [
   { to: '/trip', label: 'Trip' },
@@ -24,6 +24,8 @@ export default function Header() {
   const location = useRouterState({ select: (state) => state.location })
   const [isOpen, setIsOpen] = useState(false)
   const [avatarOk, setAvatarOk] = useState(false)
+  const [avatarFailed, setAvatarFailed] = useState(false)
+  const avatarRef = useRef<HTMLImageElement | null>(null)
   const user = session?.user
   const name =
     user?.user_metadata?.full_name ||
@@ -35,6 +37,19 @@ export default function Header() {
     user?.user_metadata?.picture ||
     user?.user_metadata?.avatar ||
     user?.user_metadata?.avatarUrl
+
+  useEffect(() => {
+    setAvatarOk(false)
+    setAvatarFailed(false)
+  }, [avatar])
+
+  useEffect(() => {
+    if (!avatar || avatarFailed) return
+    const img = avatarRef.current
+    if (img?.complete && img.naturalWidth > 0) {
+      setAvatarOk(true)
+    }
+  }, [avatar, avatarFailed])
 
   if (!user) {
     return null
@@ -120,12 +135,17 @@ export default function Header() {
             <div
               className={`user-avatar ${avatarOk ? 'user-avatar-loaded' : ''}`}
             >
-              {avatar ? (
+              {avatar && !avatarFailed ? (
                 <img
                   src={avatar}
                   alt={name}
+                  ref={avatarRef}
+                  referrerPolicy="no-referrer"
                   onLoad={() => setAvatarOk(true)}
-                  onError={() => setAvatarOk(false)}
+                  onError={() => {
+                    setAvatarOk(false)
+                    setAvatarFailed(true)
+                  }}
                 />
               ) : null}
               <span>{getInitials(name)}</span>
