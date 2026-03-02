@@ -7,13 +7,15 @@ const navItems = [
   { to: '/itinerary', label: 'Itinerary' },
   { to: '/suggestions', label: 'Suggestions' },
   { to: '/settings', label: 'Settings' },
+  { to: '/account', label: 'Account' },
+  { to: '/billing', label: 'Billing' },
 ]
 
 function getInitials(name: string) {
   const parts = name.trim().split(' ')
   if (!parts.length) return 'U'
   const first = parts[0]?.[0] ?? ''
-  const last = parts.length > 1 ? parts[parts.length - 1]?.[0] ?? '' : ''
+  const last = parts.length > 1 ? (parts[parts.length - 1]?.[0] ?? '') : ''
   return `${first}${last}`.toUpperCase()
 }
 
@@ -87,58 +89,60 @@ export default function Header() {
             Close
           </button>
         </div>
-      <nav className="sidebar-nav">
-        {navItems.map((item) => (
-          <Link
-            key={item.to}
-            to={item.to}
-            className={
-              location.pathname === item.to
-                ? 'sidebar-link sidebar-link-active'
-                : 'sidebar-link'
-            }
-            onClick={() => setIsOpen(false)}
-          >
-            {item.label}
-          </Link>
-        ))}
-        {!user ? (
-          <Link
-            to="/login"
-            className="sidebar-link sidebar-link-cta"
-            onClick={() => setIsOpen(false)}
-          >
-            Sign in
-          </Link>
-        ) : null}
-      </nav>
+        <nav className="sidebar-nav">
+          {navItems.map((item) => (
+            <Link
+              key={item.to}
+              to={item.to}
+              className={
+                location.pathname === item.to
+                  ? 'sidebar-link sidebar-link-active'
+                  : 'sidebar-link'
+              }
+              onClick={() => setIsOpen(false)}
+            >
+              {item.label}
+            </Link>
+          ))}
+          {!user ? (
+            <Link
+              to="/login"
+              className="sidebar-link sidebar-link-cta"
+              onClick={() => setIsOpen(false)}
+            >
+              Sign in
+            </Link>
+          ) : null}
+        </nav>
 
-      <div className="sidebar-footer">
-        <div className="user-card">
-          <div className={`user-avatar ${avatarOk ? 'user-avatar-loaded' : ''}`}>
-            {avatar ? (
-              <img
-                src={avatar}
-                alt={name}
-                onLoad={() => setAvatarOk(true)}
-                onError={() => setAvatarOk(false)}
-              />
-            ) : null}
-            <span>{getInitials(name)}</span>
+        <div className="sidebar-footer">
+          <div className="user-card">
+            <div
+              className={`user-avatar ${avatarOk ? 'user-avatar-loaded' : ''}`}
+            >
+              {avatar ? (
+                <img
+                  src={avatar}
+                  alt={name}
+                  onLoad={() => setAvatarOk(true)}
+                  onError={() => setAvatarOk(false)}
+                />
+              ) : null}
+              <span>{getInitials(name)}</span>
+            </div>
+            <div className="user-meta">
+              <p className="user-name">{name}</p>
+              <p className="user-subtitle">
+                {user ? 'Signed in with Google' : 'Not signed in'}
+              </p>
+            </div>
           </div>
-          <div className="user-meta">
-            <p className="user-name">{name}</p>
-            <p className="user-subtitle">
-              {user ? 'Signed in with Google' : 'Not signed in'}
-            </p>
-          </div>
+          {user ? (
+            <button type="button" onClick={signOut} className="user-signout">
+              Sign out
+            </button>
+          ) : null}
         </div>
-        {user ? (
-          <button type="button" onClick={signOut} className="user-signout">
-            Sign out
-          </button>
-        ) : null}
-      </div>
       </aside>
     </>
   )

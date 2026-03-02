@@ -29,6 +29,13 @@
       "when": 1761270000000,
       "tag": "0003_add_place_cache",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "5",
+      "when": 1762000000000,
+      "tag": "0004_add_trip_dates",
+      "breakpoints": true
     }
   ]
 }

@@ -14,6 +14,8 @@ import { Route as SuggestionsRouteImport } from './routes/suggestions'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as ItineraryRouteImport } from './routes/itinerary'
+import { Route as BillingRouteImport } from './routes/billing'
+import { Route as AccountRouteImport } from './routes/account'
 import { Route as IndexRouteImport } from './routes/index'
 
 const TripRoute = TripRouteImport.update({
@@ -41,6 +43,16 @@ const ItineraryRoute = ItineraryRouteImport.update({
   path: '/itinerary',
   getParentRoute: () => rootRouteImport,
 } as any)
+const BillingRoute = BillingRouteImport.update({
+  id: '/billing',
+  path: '/billing',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AccountRoute = AccountRouteImport.update({
+  id: '/account',
+  path: '/account',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -49,6 +61,8 @@ const IndexRoute = IndexRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/account': typeof AccountRoute
+  '/billing': typeof BillingRoute
   '/itinerary': typeof ItineraryRoute
   '/login': typeof LoginRoute
   '/settings': typeof SettingsRoute
@@ -57,6 +71,8 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/account': typeof AccountRoute
+  '/billing': typeof BillingRoute
   '/itinerary': typeof ItineraryRoute
   '/login': typeof LoginRoute
   '/settings': typeof SettingsRoute
@@ -66,6 +82,8 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/account': typeof AccountRoute
+  '/billing': typeof BillingRoute
   '/itinerary': typeof ItineraryRoute
   '/login': typeof LoginRoute
   '/settings': typeof SettingsRoute
@@ -76,16 +94,28 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/account'
+    | '/billing'
     | '/itinerary'
     | '/login'
     | '/settings'
     | '/suggestions'
     | '/trip'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/itinerary' | '/login' | '/settings' | '/suggestions' | '/trip'
+  to:
+    | '/'
+    | '/account'
+    | '/billing'
+    | '/itinerary'
+    | '/login'
+    | '/settings'
+    | '/suggestions'
+    | '/trip'
   id:
     | '__root__'
     | '/'
+    | '/account'
+    | '/billing'
     | '/itinerary'
     | '/login'
     | '/settings'
@@ -95,6 +125,8 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AccountRoute: typeof AccountRoute
+  BillingRoute: typeof BillingRoute
   ItineraryRoute: typeof ItineraryRoute
   LoginRoute: typeof LoginRoute
   SettingsRoute: typeof SettingsRoute
@@ -139,6 +171,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ItineraryRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/billing': {
+      id: '/billing'
+      path: '/billing'
+      fullPath: '/billing'
+      preLoaderRoute: typeof BillingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/account': {
+      id: '/account'
+      path: '/account'
+      fullPath: '/account'
+      preLoaderRoute: typeof AccountRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -151,6 +197,8 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AccountRoute: AccountRoute,
+  BillingRoute: BillingRoute,
   ItineraryRoute: ItineraryRoute,
   LoginRoute: LoginRoute,
   SettingsRoute: SettingsRoute,

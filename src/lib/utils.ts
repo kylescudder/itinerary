@@ -1,4 +1,6 @@
-export function groupItemsByDate<T extends { start_time: string | null }>(items: T[]) {
+export function groupItemsByDate<T extends { start_time: string | null }>(
+  items: T[],
+) {
   const groups = items.reduce<Record<string, T[]>>((acc, item) => {
     const date = item.start_time
       ? new Date(item.start_time).toISOString().split('T')[0]
@@ -34,6 +36,41 @@ export function formatDateLabel(date: string) {
     month: 'short',
     day: 'numeric',
   })
+}
+
+export function formatTripDateRange(
+  startDate?: string | null,
+  endDate?: string | null,
+) {
+  if (!startDate && !endDate) return null
+  const parseDate = (value: string) =>
+    new Date(value.includes('T') ? value : `${value}T00:00:00`)
+  const start = startDate ? parseDate(startDate) : null
+  const end = endDate ? parseDate(endDate) : null
+
+  const format = (date: Date, includeYear: boolean) => {
+    const options: Intl.DateTimeFormatOptions = {
+      month: 'short',
+      day: 'numeric',
+    }
+    if (includeYear) {
+      options.year = 'numeric'
+    }
+    return date.toLocaleDateString('en-US', options)
+  }
+
+  if (start && end) {
+    const includeYear = start.getFullYear() !== end.getFullYear()
+    const startLabel = format(start, includeYear)
+    const endLabel = format(end, includeYear)
+    return startLabel === endLabel ? startLabel : `${startLabel} - ${endLabel}`
+  }
+
+  if (start) {
+    return `Starts ${format(start, true)}`
+  }
+
+  return end ? `Ends ${format(end, true)}` : null
 }
 
 export function formatTimeLabel(dateTime: string) {

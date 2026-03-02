@@ -92,9 +92,7 @@ export async function getTrip(): Promise<Trip | null> {
     return null
   }
 
-  const selected = cachedId
-    ? trips.find((trip) => trip.id === cachedId)
-    : null
+  const selected = cachedId ? trips.find((trip) => trip.id === cachedId) : null
   const active = selected || trips[0]
   setActiveTripId(active.id)
   return active
@@ -108,9 +106,7 @@ export async function createTrip(name: string): Promise<Trip> {
   for (let attempt = 0; attempt < 5; attempt += 1) {
     const id = crypto.randomUUID()
     const code = generateTripCode()
-    const { error } = await supabase
-      .from('trip')
-      .insert({ id, name, code })
+    const { error } = await supabase.from('trip').insert({ id, name, code })
 
     if (error) {
       lastError = error.message
@@ -153,7 +149,9 @@ export async function createTrip(name: string): Promise<Trip> {
 
 export async function joinTrip(code: string): Promise<Trip> {
   await requireUserId()
-  const { data: trip, error } = await supabase.rpc('join_trip', { invite_code: code })
+  const { data: trip, error } = await supabase.rpc('join_trip', {
+    invite_code: code,
+  })
 
   if (error) {
     throw new Error(error.message)
@@ -167,10 +165,27 @@ export async function joinTrip(code: string): Promise<Trip> {
   return trip
 }
 
-export async function updateTripName(id: string, name: string): Promise<Trip> {
+export async function updateTripDetails(
+  id: string,
+  updates: {
+    name?: string
+    start_date?: string | null
+    end_date?: string | null
+  },
+): Promise<Trip> {
+  const payload: Record<string, string | null> = {}
+
+  if (updates.name !== undefined) payload.name = updates.name
+  if (updates.start_date !== undefined) payload.start_date = updates.start_date
+  if (updates.end_date !== undefined) payload.end_date = updates.end_date
+
+  if (!Object.keys(payload).length) {
+    throw new Error('No updates provided.')
+  }
+
   const { data, error } = await supabase
     .from('trip')
-    .update({ name })
+    .update(payload)
     .eq('id', id)
     .select('*')
     .maybeSingle()
@@ -186,7 +201,9 @@ export async function updateTripName(id: string, name: string): Promise<Trip> {
   return data
 }
 
-export async function getItineraryItems(tripId: string): Promise<ItineraryItem[]> {
+export async function getItineraryItems(
+  tripId: string,
+): Promise<ItineraryItem[]> {
   if (isOffline()) {
     const cached = readCachedItineraryItems(tripId)
     if (cached.length) return cached
@@ -210,7 +227,7 @@ export async function getItineraryItems(tripId: string): Promise<ItineraryItem[]
 }
 
 export async function createItineraryItem(
-  payload: CreateItineraryItemPayload
+  payload: CreateItineraryItemPayload,
 ): Promise<ItineraryItem> {
   if (isOffline()) {
     const now = new Date().toISOString()
@@ -248,7 +265,7 @@ export async function createItineraryItem(
 export async function updateItineraryItem(
   id: string,
   updates: UpdateItineraryItemPayload,
-  current?: ItineraryItem
+  current?: ItineraryItem,
 ): Promise<ItineraryItem> {
   if (isOffline()) {
     if (!current) {
@@ -286,7 +303,7 @@ export async function updateItineraryItem(
 
 export async function deleteItineraryItem(
   id: string,
-  current?: ItineraryItem
+  current?: ItineraryItem,
 ): Promise<void> {
   if (isOffline()) {
     if (!current) {
@@ -326,7 +343,9 @@ export async function deleteItineraryItem(
   }
 }
 
-export async function getSuggestions(tripId: string): Promise<PlaceSuggestion[]> {
+export async function getSuggestions(
+  tripId: string,
+): Promise<PlaceSuggestion[]> {
   if (isOffline()) {
     const cached = readCachedSuggestions(tripId)
     if (cached.length) return cached
@@ -350,7 +369,7 @@ export async function getSuggestions(tripId: string): Promise<PlaceSuggestion[]>
 }
 
 export async function createSuggestion(
-  payload: CreateSuggestionPayload
+  payload: CreateSuggestionPayload,
 ): Promise<PlaceSuggestion> {
   if (isOffline()) {
     const now = new Date().toISOString()
@@ -386,7 +405,7 @@ export async function createSuggestion(
 
 export async function searchPlaceCache(
   tripId: string,
-  query: string
+  query: string,
 ): Promise<PlaceCache[]> {
   if (isOffline()) return []
   const { data, error } = await supabase
@@ -405,7 +424,7 @@ export async function searchPlaceCache(
 }
 
 export async function upsertPlaceCache(
-  entries: UpsertPlaceCachePayload[]
+  entries: UpsertPlaceCachePayload[],
 ): Promise<void> {
   if (isOffline()) return
   if (!entries.length) return
@@ -456,7 +475,7 @@ export async function flushPendingActions() {
             data.trip_id,
             action.payload.id,
             action.payload.updates,
-            data.updated_at
+            data.updated_at,
           )
         }
       }

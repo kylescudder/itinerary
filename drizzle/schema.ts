@@ -1,5 +1,6 @@
 import {
   boolean,
+  date,
   pgTable,
   text,
   timestamp,
@@ -12,6 +13,8 @@ export const trip = pgTable('trip', {
   id: uuid('id').defaultRandom().primaryKey(),
   name: text('name').notNull(),
   code: text('code').notNull().unique(),
+  startDate: date('start_date'),
+  endDate: date('end_date'),
   createdAt: timestamp('created_at', { withTimezone: true })
     .notNull()
     .defaultNow(),
@@ -31,8 +34,11 @@ export const tripMembers = pgTable(
       .defaultNow(),
   },
   (table) => ({
-    uniqueMember: uniqueIndex('trip_members_trip_user').on(table.tripId, table.userId),
-  })
+    uniqueMember: uniqueIndex('trip_members_trip_user').on(
+      table.tripId,
+      table.userId,
+    ),
+  }),
 )
 
 export const itineraryItem = pgTable('itinerary_item', {
@@ -106,7 +112,7 @@ export const placeCache = pgTable(
   (table) => ({
     uniquePlace: uniqueIndex('place_cache_trip_place').on(
       table.tripId,
-      table.placeId
+      table.placeId,
     ),
-  })
+  }),
 )

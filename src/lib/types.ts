@@ -2,6 +2,8 @@ export type Trip = {
   id: string
   name: string
   code: string
+  start_date: string | null
+  end_date: string | null
   created_at: string
 }
 

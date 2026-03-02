@@ -1,16 +1,21 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useEffect, useState } from 'react'
-import { updateTripName } from '../lib/api'
+import { updateTripDetails } from '../lib/api'
 import { useAuth } from '../lib/auth'
 import { useTrip } from '../hooks/useTrip'
 
 export const Route = createFileRoute('/settings')({ component: Settings })
+
+const normalizeDateValue = (value?: string | null) =>
+  value ? value.split('T')[0] : ''
 
 function Settings() {
   const navigate = useNavigate()
   const { session, loading: authLoading } = useAuth()
   const { trip, loading: tripLoading, refreshTrip } = useTrip()
   const [name, setName] = useState('')
+  const [startDate, setStartDate] = useState('')
+  const [endDate, setEndDate] = useState('')
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
   const isAuthed = !!session?.user
@@ -25,6 +30,8 @@ function Settings() {
   useEffect(() => {
     if (!trip) return
     setName(trip.name)
+    setStartDate(normalizeDateValue(trip.start_date))
+    setEndDate(normalizeDateValue(trip.end_date))
   }, [trip])
 
   const handleSave = async () => {
@@ -33,12 +40,20 @@ function Settings() {
       setMessage('Trip name required.')
       return
     }
+    if (startDate && endDate && endDate < startDate) {
+      setMessage('End date must be after the start date.')
+      return
+    }
     setSaving(true)
     setMessage(null)
     try {
-      await updateTripName(trip.id, name.trim())
+      await updateTripDetails(trip.id, {
+        name: name.trim(),
+        start_date: startDate || null,
+        end_date: endDate || null,
+      })
       await refreshTrip()
-      setMessage('Trip name updated.')
+      setMessage('Trip details updated.')
     } catch (err) {
       setMessage(err instanceof Error ? err.message : 'Unable to update trip.')
     } finally {
@@ -56,7 +71,9 @@ function Settings() {
     return (
       <main className="page-shell">
         <div className="section-shell mx-auto max-w-4xl px-8 py-12">
-          <p className="text-sm text-[color:var(--ink-600)]">Loading settings...</p>
+          <p className="text-sm text-[color:var(--ink-600)]">
+            Loading settings...
+          </p>
         </div>
       </main>
     )
@@ -91,7 +108,9 @@ function Settings() {
         <p className="text-xs uppercase tracking-[0.35em] text-[color:var(--ink-600)]">
           Settings
         </p>
-        <h1 className="font-display text-3xl text-[color:var(--ink-900)]">Trip settings</h1>
+        <h1 className="font-display text-3xl text-[color:var(--ink-900)]">
+          Trip settings
+        </h1>
 
         <div className="mt-8 grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
           <div className="space-y-4">
@@ -103,6 +122,26 @@ function Settings() {
                 className="mt-2 w-full rounded-2xl border border-[color:var(--sand-300)] bg-white px-4 py-3 text-sm"
               />
             </label>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <label className="text-sm font-semibold text-[color:var(--ink-700)]">
+                Start date
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={(event) => setStartDate(event.target.value)}
+                  className="mt-2 w-full rounded-2xl border border-[color:var(--sand-300)] bg-white px-4 py-3 text-sm"
+                />
+              </label>
+              <label className="text-sm font-semibold text-[color:var(--ink-700)]">
+                End date
+                <input
+                  type="date"
+                  value={endDate}
+                  onChange={(event) => setEndDate(event.target.value)}
+                  className="mt-2 w-full rounded-2xl border border-[color:var(--sand-300)] bg-white px-4 py-3 text-sm"
+                />
+              </label>
+            </div>
             <button
               type="button"
               onClick={handleSave}

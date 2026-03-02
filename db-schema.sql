@@ -6,6 +6,8 @@ create table if not exists trip (
   id uuid primary key default uuid_generate_v4(),
   name text not null,
   code text not null unique,
+  start_date date,
+  end_date date,
   created_at timestamptz not null default now()
 );
 

@@ -15,6 +15,7 @@ import { useOfflineSync } from '../hooks/useOfflineSync'
 import type { ItineraryItem } from '../lib/types'
 import {
   formatDateLabel,
+  formatTripDateRange,
   formatTimeLabel,
   groupItemsByDate,
 } from '../lib/utils'
@@ -122,6 +123,10 @@ function Itinerary() {
       }
     >
   >({})
+  const tripDateRange = useMemo(
+    () => formatTripDateRange(trip?.start_date, trip?.end_date),
+    [trip?.start_date, trip?.end_date],
+  )
 
   useEffect(() => {
     if (!trip) return
@@ -1525,6 +1530,11 @@ function Itinerary() {
                 <h1 className="font-display text-3xl text-[color:var(--ink-900)]">
                   Itinerary
                 </h1>
+                {tripDateRange ? (
+                  <p className="mt-2 text-sm text-[color:var(--ink-600)]">
+                    {tripDateRange}
+                  </p>
+                ) : null}
               </div>
               {trips.length > 1 ? (
                 <label className="text-[10px] uppercase tracking-[0.3em] text-[color:var(--ink-600)]">
