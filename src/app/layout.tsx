@@ -26,7 +26,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className="font-body">
+      <body>
         <AppShell>{children}</AppShell>
       </body>
     </html>

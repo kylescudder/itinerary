@@ -1456,7 +1456,7 @@ export default function ItineraryPage() {
         type="button"
         onClick={isEditMode ? handleUpdate : handleAdd}
         disabled={loading}
-        className="focus-ring w-full rounded-2xl bg-[color:var(--sun-400)] px-5 py-3 text-sm font-semibold text-[color:var(--ink-900)]"
+        className="w-full rounded-2xl bg-[color:var(--sun-400)] px-5 py-3 text-sm font-semibold text-[color:var(--ink-900)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[color:var(--sun-500)] focus-visible:outline-offset-[3px]"
       >
         {loading ? 'Saving...' : isEditMode ? 'Save changes' : 'Add item'}
       </button>
@@ -1465,8 +1465,8 @@ export default function ItineraryPage() {
 
   if (authLoading || tripLoading) {
     return (
-      <main className="page-shell">
-        <div className="section-shell mx-auto max-w-5xl px-8 py-12">
+      <main className="min-h-screen px-[clamp(20px,5vw,64px)] pt-8 pb-[60px]">
+        <div className="mx-auto max-w-5xl rounded-[24px] border border-[rgba(234,203,213,0.7)] bg-[linear-gradient(135deg,rgba(248,237,240,0.9),rgba(254,249,250,0.95))] px-8 py-12 shadow-[var(--shadow-soft)]">
           <p className="text-sm text-[color:var(--ink-600)]">
             Loading itinerary...
           </p>
@@ -1481,15 +1481,15 @@ export default function ItineraryPage() {
 
   if (!trip) {
     return (
-      <main className="page-shell">
-        <div className="section-shell mx-auto max-w-5xl px-8 py-12">
-          <h1 className="font-display text-3xl text-[color:var(--ink-900)]">
+      <main className="min-h-screen px-[clamp(20px,5vw,64px)] pt-8 pb-[60px]">
+        <div className="mx-auto max-w-5xl rounded-[24px] border border-[rgba(234,203,213,0.7)] bg-[linear-gradient(135deg,rgba(248,237,240,0.9),rgba(254,249,250,0.95))] px-8 py-12 shadow-[var(--shadow-soft)]">
+          <h1 className="[font-family:var(--font-display)] text-3xl text-[color:var(--ink-900)]">
             Create or join a trip to start planning.
           </h1>
           <button
             type="button"
             onClick={() => router.push('/trip')}
-            className="focus-ring mt-6 rounded-full bg-[color:var(--sun-400)] px-6 py-3 text-sm font-semibold text-[color:var(--ink-900)]"
+            className="mt-6 rounded-full bg-[color:var(--sun-400)] px-6 py-3 text-sm font-semibold text-[color:var(--ink-900)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[color:var(--sun-500)] focus-visible:outline-offset-[3px]"
           >
             Go to trip setup
           </button>
@@ -1500,7 +1500,7 @@ export default function ItineraryPage() {
 
   return (
     <main
-      className="page-shell"
+      className="min-h-screen px-[clamp(20px,5vw,64px)] pt-8 pb-[60px]"
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
@@ -1519,15 +1519,15 @@ export default function ItineraryPage() {
             ? 'Release to refresh'
             : 'Pull to refresh'}
       </div>
-      <div className="mx-auto grid max-w-6xl gap-8 lg:grid-cols-[1.1fr_0.9fr]">
+      <div className="mx-auto grid max-w-6xl gap-8 min-[900px]:grid-cols-[1.1fr_0.9fr]">
         <section className="space-y-6">
-          <div className="section-shell px-8 py-8">
+          <div className="rounded-[24px] border border-[rgba(234,203,213,0.7)] bg-[linear-gradient(135deg,rgba(248,237,240,0.9),rgba(254,249,250,0.95))] px-8 py-8 shadow-[var(--shadow-soft)]">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
               <div>
                 <p className="text-xs uppercase tracking-[0.35em] text-[color:var(--ink-600)]">
                   {trip.name}
                 </p>
-                <h1 className="font-display text-3xl text-[color:var(--ink-900)]">
+                <h1 className="[font-family:var(--font-display)] text-3xl text-[color:var(--ink-900)]">
                   Itinerary
                 </h1>
                 {tripDateRange ? (
@@ -1562,14 +1562,17 @@ export default function ItineraryPage() {
           ) : null}
 
           {loading ? (
-            <div className="section-shell px-8 py-8">
+            <div className="rounded-[24px] border border-[rgba(234,203,213,0.7)] bg-[linear-gradient(135deg,rgba(248,237,240,0.9),rgba(254,249,250,0.95))] px-8 py-8 shadow-[var(--shadow-soft)]">
               <p className="text-sm text-[color:var(--ink-600)]">
                 Loading items...
               </p>
             </div>
           ) : grouped.length ? (
             grouped.map((group) => (
-              <div key={group.date} className="section-shell px-8 py-6">
+              <div
+                key={group.date}
+                className="rounded-[24px] border border-[rgba(234,203,213,0.7)] bg-[linear-gradient(135deg,rgba(248,237,240,0.9),rgba(254,249,250,0.95))] px-8 py-6 shadow-[var(--shadow-soft)]"
+              >
                 <p className="text-xs uppercase tracking-[0.3em] text-[color:var(--ink-600)]">
                   {formatDateLabel(group.date)}
                 </p>
@@ -1684,7 +1687,7 @@ export default function ItineraryPage() {
                                 onClick={() =>
                                   handleToggleTravelDone(item, 'from_done')
                                 }
-                                className="focus-ring h-fit rounded-full border border-[color:var(--sand-300)] bg-white px-3 py-1.5 text-[10px] font-semibold text-[color:var(--ink-700)]"
+                                className="h-fit rounded-full border border-[color:var(--sand-300)] bg-white px-3 py-1.5 text-[10px] font-semibold text-[color:var(--ink-700)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[color:var(--sun-500)] focus-visible:outline-offset-[3px]"
                               >
                                 {fromDone ? 'Undo' : 'Done'}
                               </button>
@@ -1694,14 +1697,14 @@ export default function ItineraryPage() {
                                 <button
                                   type="button"
                                   onClick={() => openEditForm(item)}
-                                  className="focus-ring px-2.5 py-1.5"
+                                  className="px-2.5 py-1.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[color:var(--sun-500)] focus-visible:outline-offset-[3px]"
                                 >
                                   Edit
                                 </button>
                                 <button
                                   type="button"
                                   onClick={() => handleDelete(item)}
-                                  className="focus-ring border-l border-[color:var(--sand-300)] px-2.5 py-1.5 text-[color:var(--clay-600)]"
+                                  className="border-l border-[color:var(--sand-300)] px-2.5 py-1.5 text-[color:var(--clay-600)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[color:var(--sun-500)] focus-visible:outline-offset-[3px]"
                                 >
                                   Delete
                                 </button>
@@ -1754,7 +1757,7 @@ export default function ItineraryPage() {
                                 onClick={() =>
                                   handleToggleTravelDone(item, 'to_done')
                                 }
-                                className="focus-ring h-fit rounded-full border border-[color:var(--sand-300)] bg-white px-3 py-1.5 text-[10px] font-semibold text-[color:var(--ink-700)]"
+                                className="h-fit rounded-full border border-[color:var(--sand-300)] bg-white px-3 py-1.5 text-[10px] font-semibold text-[color:var(--ink-700)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[color:var(--sun-500)] focus-visible:outline-offset-[3px]"
                               >
                                 {toDone ? 'Undo' : 'Done'}
                               </button>
@@ -1827,7 +1830,7 @@ export default function ItineraryPage() {
                             <button
                               type="button"
                               onClick={() => handleToggleDone(item)}
-                              className="focus-ring h-fit rounded-full border border-[color:var(--sand-300)] bg-white px-3 py-1.5 text-[10px] font-semibold text-[color:var(--ink-700)]"
+                              className="h-fit rounded-full border border-[color:var(--sand-300)] bg-white px-3 py-1.5 text-[10px] font-semibold text-[color:var(--ink-700)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[color:var(--sun-500)] focus-visible:outline-offset-[3px]"
                             >
                               {item.done ? 'Undo' : 'Done'}
                             </button>
@@ -1837,14 +1840,14 @@ export default function ItineraryPage() {
                               <button
                                 type="button"
                                 onClick={() => openEditForm(item)}
-                                className="focus-ring px-2.5 py-1.5"
+                                className="px-2.5 py-1.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[color:var(--sun-500)] focus-visible:outline-offset-[3px]"
                               >
                                 Edit
                               </button>
                               <button
                                 type="button"
                                 onClick={() => handleDelete(item)}
-                                className="focus-ring border-l border-[color:var(--sand-300)] px-2.5 py-1.5 text-[color:var(--clay-600)]"
+                                className="border-l border-[color:var(--sand-300)] px-2.5 py-1.5 text-[color:var(--clay-600)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[color:var(--sun-500)] focus-visible:outline-offset-[3px]"
                               >
                                 Delete
                               </button>
@@ -1888,7 +1891,7 @@ export default function ItineraryPage() {
               </div>
             ))
           ) : (
-            <div className="section-shell px-8 py-8">
+            <div className="rounded-[24px] border border-[rgba(234,203,213,0.7)] bg-[linear-gradient(135deg,rgba(248,237,240,0.9),rgba(254,249,250,0.95))] px-8 py-8 shadow-[var(--shadow-soft)]">
               <p className="text-sm text-[color:var(--ink-600)]">
                 No itinerary items yet. Add the first one on the right.
               </p>
@@ -1896,8 +1899,8 @@ export default function ItineraryPage() {
           )}
         </section>
 
-        <aside className="section-shell h-fit px-8 py-8">
-          <h2 className="font-display text-2xl text-[color:var(--ink-900)]">
+        <aside className="h-fit rounded-[24px] border border-[rgba(234,203,213,0.7)] bg-[linear-gradient(135deg,rgba(248,237,240,0.9),rgba(254,249,250,0.95))] px-8 py-8 shadow-[var(--shadow-soft)]">
+          <h2 className="[font-family:var(--font-display)] text-2xl text-[color:var(--ink-900)]">
             Add an item
           </h2>
           <p className="mt-2 text-sm text-[color:var(--ink-600)]">
@@ -1906,7 +1909,7 @@ export default function ItineraryPage() {
           <button
             type="button"
             onClick={openAddForm}
-            className="focus-ring mt-6 w-full rounded-2xl bg-[color:var(--sun-400)] px-5 py-3 text-sm font-semibold text-[color:var(--ink-900)]"
+            className="mt-6 w-full rounded-2xl bg-[color:var(--sun-400)] px-5 py-3 text-sm font-semibold text-[color:var(--ink-900)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[color:var(--sun-500)] focus-visible:outline-offset-[3px]"
           >
             Add item
           </button>
@@ -1915,7 +1918,7 @@ export default function ItineraryPage() {
       <button
         type="button"
         onClick={openAddForm}
-        className="focus-ring fixed bottom-6 right-6 z-40 rounded-full bg-[color:var(--sun-400)] px-5 py-3 text-sm font-semibold text-[color:var(--ink-900)] shadow-lg"
+        className="fixed bottom-6 right-6 z-40 rounded-full bg-[color:var(--sun-400)] px-5 py-3 text-sm font-semibold text-[color:var(--ink-900)] shadow-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-[color:var(--sun-500)] focus-visible:outline-offset-[3px]"
       >
         Add item
       </button>
@@ -1932,14 +1935,14 @@ export default function ItineraryPage() {
                 <p className="text-xs uppercase tracking-[0.3em] text-[color:var(--ink-600)]">
                   {trip.name}
                 </p>
-                <h2 className="font-display text-2xl text-[color:var(--ink-900)]">
+                <h2 className="[font-family:var(--font-display)] text-2xl text-[color:var(--ink-900)]">
                   {isEditMode ? 'Edit item' : 'Add an item'}
                 </h2>
               </div>
               <button
                 type="button"
                 onClick={closeForm}
-                className="focus-ring rounded-full border border-[color:var(--sand-300)] px-3 py-1.5 text-xs font-semibold text-[color:var(--ink-700)]"
+                className="rounded-full border border-[color:var(--sand-300)] px-3 py-1.5 text-xs font-semibold text-[color:var(--ink-700)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[color:var(--sun-500)] focus-visible:outline-offset-[3px]"
               >
                 Close
               </button>

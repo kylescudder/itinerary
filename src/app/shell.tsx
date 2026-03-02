@@ -15,9 +15,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <AuthProvider>
-      <div className="app-shell">
+      <div className="flex min-h-screen flex-col min-[900px]:flex-row">
         <Header />
-        <div className="app-content">{children}</div>
+        <div className="flex-1 min-[900px]:pl-[280px]">{children}</div>
       </div>
     </AuthProvider>
   )

@@ -86,8 +86,8 @@ export default function TripPage() {
 
   if (authLoading || tripLoading) {
     return (
-      <main className="page-shell">
-        <div className="section-shell mx-auto max-w-3xl px-8 py-12">
+      <main className="min-h-screen px-[clamp(20px,5vw,64px)] pt-8 pb-[60px]">
+        <div className="mx-auto max-w-3xl rounded-[24px] border border-[rgba(234,203,213,0.7)] bg-[linear-gradient(135deg,rgba(248,237,240,0.9),rgba(254,249,250,0.95))] px-8 py-12 shadow-[var(--shadow-soft)]">
           <p className="text-sm text-[color:var(--ink-600)]">
             Loading your trip...
           </p>
@@ -101,8 +101,8 @@ export default function TripPage() {
   }
 
   return (
-    <main className="page-shell">
-      <div className="section-shell mx-auto max-w-3xl px-8 py-12">
+    <main className="min-h-screen px-[clamp(20px,5vw,64px)] pt-8 pb-[60px]">
+      <div className="mx-auto max-w-3xl rounded-[24px] border border-[rgba(234,203,213,0.7)] bg-[linear-gradient(135deg,rgba(248,237,240,0.9),rgba(254,249,250,0.95))] px-8 py-12 shadow-[var(--shadow-soft)]">
         {trips.length ? (
           <div className="mb-10">
             <p className="text-xs uppercase tracking-[0.35em] text-[color:var(--ink-600)]">
@@ -134,7 +134,7 @@ export default function TripPage() {
                         setActiveTrip(entry.id)
                         router.push('/itinerary')
                       }}
-                      className="focus-ring rounded-full border border-[color:var(--sand-300)] px-4 py-2 text-xs font-semibold text-[color:var(--ink-700)]"
+                      className="rounded-full border border-[color:var(--sand-300)] px-4 py-2 text-xs font-semibold text-[color:var(--ink-700)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[color:var(--sun-500)] focus-visible:outline-offset-[3px]"
                     >
                       View itinerary
                     </button>
@@ -148,7 +148,7 @@ export default function TripPage() {
           <p className="text-xs uppercase tracking-[0.35em] text-[color:var(--ink-600)]">
             Set up your trip
           </p>
-          <h1 className="font-display text-3xl text-[color:var(--ink-900)]">
+          <h1 className="[font-family:var(--font-display)] text-3xl text-[color:var(--ink-900)]">
             Create a shared plan or join with a code.
           </h1>
         </div>
@@ -157,7 +157,7 @@ export default function TripPage() {
           <button
             type="button"
             onClick={() => setMode('create')}
-            className={`focus-ring flex-1 rounded-full px-4 py-2 text-sm font-semibold ${
+            className={`flex-1 rounded-full px-4 py-2 text-sm font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-[color:var(--sun-500)] focus-visible:outline-offset-[3px] ${
               mode === 'create'
                 ? 'bg-[color:var(--sand-50)] text-[color:var(--ink-900)]'
                 : 'text-[color:var(--ink-700)]'
@@ -168,7 +168,7 @@ export default function TripPage() {
           <button
             type="button"
             onClick={() => setMode('join')}
-            className={`focus-ring flex-1 rounded-full px-4 py-2 text-sm font-semibold ${
+            className={`flex-1 rounded-full px-4 py-2 text-sm font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-[color:var(--sun-500)] focus-visible:outline-offset-[3px] ${
               mode === 'join'
                 ? 'bg-[color:var(--sand-50)] text-[color:var(--ink-900)]'
                 : 'text-[color:var(--ink-700)]'
@@ -178,7 +178,7 @@ export default function TripPage() {
           </button>
         </div>
 
-        <div className="glass-panel mt-6 rounded-3xl p-6">
+        <div className="mt-6 rounded-3xl border border-[rgba(234,203,213,0.6)] bg-[rgba(254,249,250,0.9)] p-6 shadow-[var(--shadow-card)] backdrop-blur-[16px]">
           {mode === 'create' ? (
             <div className="space-y-6">
               <label className="text-sm font-semibold text-[color:var(--ink-700)]">
@@ -215,7 +215,7 @@ export default function TripPage() {
                 type="button"
                 onClick={handleCreate}
                 disabled={working}
-                className="focus-ring mt-6 w-full rounded-2xl bg-[color:var(--sun-400)] px-5 py-3 text-sm font-semibold text-[color:var(--ink-900)]"
+                className="mt-6 w-full rounded-2xl bg-[color:var(--sun-400)] px-5 py-3 text-sm font-semibold text-[color:var(--ink-900)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[color:var(--sun-500)] focus-visible:outline-offset-[3px]"
               >
                 {working ? 'Creating...' : 'Create trip'}
               </button>
@@ -235,7 +235,7 @@ export default function TripPage() {
                 type="button"
                 onClick={handleJoin}
                 disabled={working}
-                className="focus-ring mt-6 w-full rounded-2xl bg-[color:var(--sun-400)] px-5 py-3 text-sm font-semibold text-[color:var(--ink-900)]"
+                className="mt-6 w-full rounded-2xl bg-[color:var(--sun-400)] px-5 py-3 text-sm font-semibold text-[color:var(--ink-900)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[color:var(--sun-500)] focus-visible:outline-offset-[3px]"
               >
                 {working ? 'Joining...' : 'Join trip'}
               </button>

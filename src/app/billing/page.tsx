@@ -22,8 +22,8 @@ export default function BillingPage() {
 
   if (authLoading) {
     return (
-      <main className="page-shell">
-        <div className="section-shell mx-auto max-w-4xl px-8 py-12">
+      <main className="min-h-screen px-[clamp(20px,5vw,64px)] pt-8 pb-[60px]">
+        <div className="mx-auto max-w-4xl rounded-[24px] border border-[rgba(234,203,213,0.7)] bg-[linear-gradient(135deg,rgba(248,237,240,0.9),rgba(254,249,250,0.95))] px-8 py-12 shadow-[var(--shadow-soft)]">
           <p className="text-sm text-[color:var(--ink-600)]">
             Loading billing...
           </p>
@@ -37,22 +37,24 @@ export default function BillingPage() {
   }
 
   return (
-    <main className="page-shell">
-      <section className="section-shell mx-auto max-w-5xl px-8 py-12">
-        <div className="billing-head">
+    <main className="min-h-screen px-[clamp(20px,5vw,64px)] pt-8 pb-[60px]">
+      <section className="mx-auto max-w-5xl rounded-[24px] border border-[rgba(234,203,213,0.7)] bg-[linear-gradient(135deg,rgba(248,237,240,0.9),rgba(254,249,250,0.95))] px-8 py-12 shadow-[var(--shadow-soft)]">
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
           <div>
             <p className="text-xs uppercase tracking-[0.35em] text-[color:var(--ink-600)]">
               Billing
             </p>
-            <h1 className="font-display text-3xl text-[color:var(--ink-900)]">
+            <h1 className="[font-family:var(--font-display)] text-3xl text-[color:var(--ink-900)]">
               Simple billing, $5 per trip.
             </h1>
           </div>
-          <span className="stripe-chip">Powered by Stripe</span>
+          <span className="self-start rounded-full border border-[rgba(234,203,213,0.7)] bg-[rgba(254,249,250,0.9)] px-3 py-[6px] text-[0.7rem] uppercase tracking-[0.2em] text-[color:var(--ink-700)]">
+            Powered by Stripe
+          </span>
         </div>
 
-        <div className="billing-grid">
-          <div className="billing-card">
+        <div className="grid gap-[18px]">
+          <div className="rounded-[24px] border border-[rgba(234,203,213,0.7)] bg-[rgba(254,249,250,0.92)] p-[22px] shadow-[var(--shadow-card)]">
             <p className="text-xs uppercase tracking-[0.3em] text-[color:var(--ink-600)]">
               Payment
             </p>
@@ -66,15 +68,15 @@ export default function BillingPage() {
             <button
               type="button"
               onClick={handleCheckout}
-              className="focus-ring mt-5 rounded-full bg-[color:var(--sun-400)] px-6 py-3 text-sm font-semibold text-[color:var(--ink-900)]"
+              className="mt-5 rounded-full bg-[color:var(--sun-400)] px-6 py-3 text-sm font-semibold text-[color:var(--ink-900)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[color:var(--sun-500)] focus-visible:outline-offset-[3px]"
             >
               Continue to checkout
             </button>
           </div>
         </div>
 
-        <div className="billing-summary">
-          <div className="billing-summary-card">
+        <div className="mt-6 grid gap-[14px] min-[900px]:grid-cols-[repeat(3,minmax(0,1fr))]">
+          <div className="rounded-[20px] border border-dashed border-[rgba(234,203,213,0.7)] bg-[rgba(255,255,255,0.8)] p-[18px]">
             <p className="text-xs uppercase tracking-[0.3em] text-[color:var(--ink-600)]">
               Current rate
             </p>
@@ -85,7 +87,7 @@ export default function BillingPage() {
               The price is the same no matter how many travelers you invite.
             </p>
           </div>
-          <div className="billing-summary-card">
+          <div className="rounded-[20px] border border-dashed border-[rgba(234,203,213,0.7)] bg-[rgba(255,255,255,0.8)] p-[18px]">
             <p className="text-xs uppercase tracking-[0.3em] text-[color:var(--ink-600)]">
               Extras
             </p>
@@ -96,7 +98,7 @@ export default function BillingPage() {
               No add-ons, no tier upgrades, and no usage overages.
             </p>
           </div>
-          <div className="billing-summary-card">
+          <div className="rounded-[20px] border border-dashed border-[rgba(234,203,213,0.7)] bg-[rgba(255,255,255,0.8)] p-[18px]">
             <p className="text-xs uppercase tracking-[0.3em] text-[color:var(--ink-600)]">
               Invoices
             </p>

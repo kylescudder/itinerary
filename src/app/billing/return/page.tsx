@@ -41,8 +41,8 @@ export default function BillingReturnPage() {
 
   if (authLoading) {
     return (
-      <main className="page-shell">
-        <div className="section-shell mx-auto max-w-4xl px-8 py-12">
+      <main className="min-h-screen px-[clamp(20px,5vw,64px)] pt-8 pb-[60px]">
+        <div className="mx-auto max-w-4xl rounded-[24px] border border-[rgba(234,203,213,0.7)] bg-[linear-gradient(135deg,rgba(248,237,240,0.9),rgba(254,249,250,0.95))] px-8 py-12 shadow-[var(--shadow-soft)]">
           <p className="text-sm text-[color:var(--ink-600)]">
             Loading checkout status...
           </p>
@@ -56,9 +56,9 @@ export default function BillingReturnPage() {
   }
 
   return (
-    <main className="page-shell">
-      <section className="section-shell mx-auto max-w-4xl px-8 py-12">
-        <div className="billing-card">
+    <main className="min-h-screen px-[clamp(20px,5vw,64px)] pt-8 pb-[60px]">
+      <section className="mx-auto max-w-4xl rounded-[24px] border border-[rgba(234,203,213,0.7)] bg-[linear-gradient(135deg,rgba(248,237,240,0.9),rgba(254,249,250,0.95))] px-8 py-12 shadow-[var(--shadow-soft)]">
+        <div className="relative grid gap-[14px] rounded-[24px] border border-[rgba(234,203,213,0.7)] bg-[rgba(254,249,250,0.92)] p-[22px] shadow-[var(--shadow-card)]">
           {error ? (
             <>
               <p className="text-lg font-semibold text-[color:var(--ink-900)]">
@@ -103,7 +103,7 @@ export default function BillingReturnPage() {
               <button
                 type="button"
                 onClick={() => router.push('/itinerary')}
-                className="focus-ring rounded-full bg-[color:var(--sun-400)] px-6 py-3 text-sm font-semibold text-[color:var(--ink-900)]"
+                className="rounded-full bg-[color:var(--sun-400)] px-6 py-3 text-sm font-semibold text-[color:var(--ink-900)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[color:var(--sun-500)] focus-visible:outline-offset-[3px]"
               >
                 Go to itinerary
               </button>
@@ -111,7 +111,7 @@ export default function BillingReturnPage() {
               <button
                 type="button"
                 onClick={() => router.push('/billing/checkout')}
-                className="focus-ring rounded-full bg-[color:var(--sun-400)] px-6 py-3 text-sm font-semibold text-[color:var(--ink-900)]"
+                className="rounded-full bg-[color:var(--sun-400)] px-6 py-3 text-sm font-semibold text-[color:var(--ink-900)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[color:var(--sun-500)] focus-visible:outline-offset-[3px]"
               >
                 Return to checkout
               </button>
@@ -119,7 +119,7 @@ export default function BillingReturnPage() {
             <button
               type="button"
               onClick={() => router.push('/billing')}
-              className="focus-ring rounded-full border border-[color:var(--sand-300)] px-6 py-3 text-sm font-semibold text-[color:var(--ink-700)]"
+              className="rounded-full border border-[color:var(--sand-300)] px-6 py-3 text-sm font-semibold text-[color:var(--ink-700)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[color:var(--sun-500)] focus-visible:outline-offset-[3px]"
             >
               Back to billing
             </button>

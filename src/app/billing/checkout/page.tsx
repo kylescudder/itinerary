@@ -45,8 +45,8 @@ export default function BillingCheckoutPage() {
 
   if (authLoading) {
     return (
-      <main className="page-shell">
-        <div className="section-shell mx-auto max-w-4xl px-8 py-12">
+      <main className="min-h-screen px-[clamp(20px,5vw,64px)] pt-8 pb-[60px]">
+        <div className="mx-auto max-w-4xl rounded-[24px] border border-[rgba(234,203,213,0.7)] bg-[linear-gradient(135deg,rgba(248,237,240,0.9),rgba(254,249,250,0.95))] px-8 py-12 shadow-[var(--shadow-soft)]">
           <p className="text-sm text-[color:var(--ink-600)]">
             Loading checkout...
           </p>
@@ -61,9 +61,9 @@ export default function BillingCheckoutPage() {
 
   if (!stripePromise) {
     return (
-      <main className="page-shell">
-        <section className="section-shell mx-auto max-w-4xl px-8 py-12">
-          <div className="billing-card">
+      <main className="min-h-screen px-[clamp(20px,5vw,64px)] pt-8 pb-[60px]">
+        <section className="mx-auto max-w-4xl rounded-[24px] border border-[rgba(234,203,213,0.7)] bg-[linear-gradient(135deg,rgba(248,237,240,0.9),rgba(254,249,250,0.95))] px-8 py-12 shadow-[var(--shadow-soft)]">
+          <div className="relative grid gap-[14px] rounded-[24px] border border-[rgba(234,203,213,0.7)] bg-[rgba(254,249,250,0.92)] p-[22px] shadow-[var(--shadow-card)]">
             <p className="text-sm text-[color:var(--clay-600)]">
               Missing Stripe publishable key. Add
               `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` to your `.env` to enable
@@ -76,21 +76,21 @@ export default function BillingCheckoutPage() {
   }
 
   return (
-    <main className="page-shell">
-      <section className="section-shell mx-auto max-w-4xl px-8 py-12">
-        <div className="billing-head">
+    <main className="min-h-screen px-[clamp(20px,5vw,64px)] pt-8 pb-[60px]">
+      <section className="mx-auto max-w-4xl rounded-[24px] border border-[rgba(234,203,213,0.7)] bg-[linear-gradient(135deg,rgba(248,237,240,0.9),rgba(254,249,250,0.95))] px-8 py-12 shadow-[var(--shadow-soft)]">
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
           <div>
             <p className="text-xs uppercase tracking-[0.35em] text-[color:var(--ink-600)]">
               Checkout
             </p>
-            <h1 className="font-display text-3xl text-[color:var(--ink-900)]">
+            <h1 className="[font-family:var(--font-display)] text-3xl text-[color:var(--ink-900)]">
               Pay $5 to unlock this trip.
             </h1>
           </div>
         </div>
 
-        <div className="billing-card">
-          <div className="embedded-checkout">
+        <div className="relative grid gap-[14px] rounded-[24px] border border-[rgba(234,203,213,0.7)] bg-[rgba(254,249,250,0.92)] p-[22px] shadow-[var(--shadow-card)]">
+          <div className="min-h-[560px] [&_iframe]:w-full">
             <EmbeddedCheckoutProvider stripe={stripePromise} options={options}>
               <EmbeddedCheckout />
             </EmbeddedCheckoutProvider>

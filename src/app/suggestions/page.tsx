@@ -89,8 +89,8 @@ export default function SuggestionsPage() {
 
   if (authLoading || tripLoading) {
     return (
-      <main className="page-shell">
-        <div className="section-shell mx-auto max-w-5xl px-8 py-12">
+      <main className="min-h-screen px-[clamp(20px,5vw,64px)] pt-8 pb-[60px]">
+        <div className="mx-auto max-w-5xl rounded-[24px] border border-[rgba(234,203,213,0.7)] bg-[linear-gradient(135deg,rgba(248,237,240,0.9),rgba(254,249,250,0.95))] px-8 py-12 shadow-[var(--shadow-soft)]">
           <p className="text-sm text-[color:var(--ink-600)]">
             Loading suggestions...
           </p>
@@ -105,15 +105,15 @@ export default function SuggestionsPage() {
 
   if (!trip) {
     return (
-      <main className="page-shell">
-        <div className="section-shell mx-auto max-w-5xl px-8 py-12">
-          <h1 className="font-display text-3xl text-[color:var(--ink-900)]">
+      <main className="min-h-screen px-[clamp(20px,5vw,64px)] pt-8 pb-[60px]">
+        <div className="mx-auto max-w-5xl rounded-[24px] border border-[rgba(234,203,213,0.7)] bg-[linear-gradient(135deg,rgba(248,237,240,0.9),rgba(254,249,250,0.95))] px-8 py-12 shadow-[var(--shadow-soft)]">
+          <h1 className="[font-family:var(--font-display)] text-3xl text-[color:var(--ink-900)]">
             Create or join a trip to collect suggestions.
           </h1>
           <button
             type="button"
             onClick={() => router.push('/trip')}
-            className="focus-ring mt-6 rounded-full bg-[color:var(--sun-400)] px-6 py-3 text-sm font-semibold text-[color:var(--ink-900)]"
+            className="mt-6 rounded-full bg-[color:var(--sun-400)] px-6 py-3 text-sm font-semibold text-[color:var(--ink-900)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[color:var(--sun-500)] focus-visible:outline-offset-[3px]"
           >
             Go to trip setup
           </button>
@@ -123,16 +123,16 @@ export default function SuggestionsPage() {
   }
 
   return (
-    <main className="page-shell">
-      <div className="mx-auto grid max-w-6xl gap-8 lg:grid-cols-[1.1fr_0.9fr]">
+    <main className="min-h-screen px-[clamp(20px,5vw,64px)] pt-8 pb-[60px]">
+      <div className="mx-auto grid max-w-6xl gap-8 min-[900px]:grid-cols-[1.1fr_0.9fr]">
         <section className="space-y-6">
-          <div className="section-shell px-8 py-8">
+          <div className="rounded-[24px] border border-[rgba(234,203,213,0.7)] bg-[linear-gradient(135deg,rgba(248,237,240,0.9),rgba(254,249,250,0.95))] px-8 py-8 shadow-[var(--shadow-soft)]">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
               <div>
                 <p className="text-xs uppercase tracking-[0.35em] text-[color:var(--ink-600)]">
                   {trip.name}
                 </p>
-                <h1 className="font-display text-3xl text-[color:var(--ink-900)]">
+                <h1 className="[font-family:var(--font-display)] text-3xl text-[color:var(--ink-900)]">
                   Suggestions
                 </h1>
               </div>
@@ -163,7 +163,10 @@ export default function SuggestionsPage() {
 
           {items.length ? (
             items.map((suggestion) => (
-              <div key={suggestion.id} className="section-shell px-8 py-6">
+              <div
+                key={suggestion.id}
+                className="rounded-[24px] border border-[rgba(234,203,213,0.7)] bg-[linear-gradient(135deg,rgba(248,237,240,0.9),rgba(254,249,250,0.95))] px-8 py-6 shadow-[var(--shadow-soft)]"
+              >
                 <p className="text-xs uppercase tracking-[0.3em] text-[color:var(--ink-600)]">
                   {suggestion.type}
                 </p>
@@ -178,7 +181,7 @@ export default function SuggestionsPage() {
               </div>
             ))
           ) : (
-            <div className="section-shell px-8 py-8">
+            <div className="rounded-[24px] border border-[rgba(234,203,213,0.7)] bg-[linear-gradient(135deg,rgba(248,237,240,0.9),rgba(254,249,250,0.95))] px-8 py-8 shadow-[var(--shadow-soft)]">
               <p className="text-sm text-[color:var(--ink-600)]">
                 No suggestions yet. Add the first one from the form on the
                 right.
@@ -187,8 +190,8 @@ export default function SuggestionsPage() {
           )}
         </section>
 
-        <aside className="section-shell h-fit px-8 py-8">
-          <h2 className="font-display text-2xl text-[color:var(--ink-900)]">
+        <aside className="h-fit rounded-[24px] border border-[rgba(234,203,213,0.7)] bg-[linear-gradient(135deg,rgba(248,237,240,0.9),rgba(254,249,250,0.95))] px-8 py-8 shadow-[var(--shadow-soft)]">
+          <h2 className="[font-family:var(--font-display)] text-2xl text-[color:var(--ink-900)]">
             Add a suggestion
           </h2>
           <p className="mt-2 text-sm text-[color:var(--ink-600)]">
@@ -231,7 +234,7 @@ export default function SuggestionsPage() {
               type="button"
               onClick={handleAdd}
               disabled={loading}
-              className="focus-ring w-full rounded-2xl bg-[color:var(--sun-400)] px-5 py-3 text-sm font-semibold text-[color:var(--ink-900)]"
+              className="w-full rounded-2xl bg-[color:var(--sun-400)] px-5 py-3 text-sm font-semibold text-[color:var(--ink-900)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[color:var(--sun-500)] focus-visible:outline-offset-[3px]"
             >
               {loading ? 'Saving...' : 'Add suggestion'}
             </button>

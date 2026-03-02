@@ -68,19 +68,21 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="landing-shell login-shell">
-      <section className="landing-section mx-auto max-w-4xl landing-section-inner">
+    <main className="min-h-screen overflow-hidden bg-[linear-gradient(180deg,#fbecef_0%,#f6eef2_45%,#f8f3f2_100%)]">
+      <section className="mx-auto w-full max-w-4xl px-[clamp(22px,7vw,48px)] py-[72px] max-[640px]:px-6 max-[640px]:py-12">
         <div className="mx-auto grid w-full max-w-xl gap-6 text-center">
           <div className="grid gap-3">
-            <p className="eyebrow">Secure sign in</p>
-            <h1 className="font-display text-3xl text-[color:var(--ink-900)] sm:text-4xl">
+            <p className="text-[0.7rem] uppercase tracking-[0.35em] text-[color:var(--ink-600)]">
+              Secure sign in
+            </p>
+            <h1 className="[font-family:var(--font-display)] text-3xl text-[color:var(--ink-900)] sm:text-4xl">
               Just a moment.
             </h1>
             <p className="text-base text-[color:var(--ink-600)]">
               We are finishing the secure handoff from Google.
             </p>
           </div>
-          <div className="pricing-card text-left">
+          <div className="relative grid gap-[14px] rounded-[24px] border border-[rgba(234,203,213,0.7)] bg-[rgba(254,249,250,0.92)] p-[22px] text-left shadow-[var(--shadow-card)]">
             {error ? (
               <>
                 <p className="rounded-2xl bg-[color:var(--sand-200)] px-4 py-3 text-sm text-[color:var(--clay-600)]">
@@ -90,7 +92,7 @@ export default function LoginPage() {
                   type="button"
                   onClick={handleGoogleSignIn}
                   disabled={working}
-                  className="focus-ring hero-primary w-full flex items-center justify-center gap-2"
+                  className="flex w-full items-center justify-center gap-2 rounded-full bg-[color:var(--ink-900)] px-[22px] py-3 text-[0.9rem] font-bold tracking-[0.02em] text-[color:var(--sand-50)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[color:var(--sun-500)] focus-visible:outline-offset-[3px]"
                 >
                   <svg
                     aria-hidden="true"
@@ -132,7 +134,7 @@ export default function LoginPage() {
                   type="button"
                   onClick={handleGoogleSignIn}
                   disabled={working}
-                  className="focus-ring hero-primary w-full flex items-center justify-center gap-2"
+                  className="flex w-full items-center justify-center gap-2 rounded-full bg-[color:var(--ink-900)] px-[22px] py-3 text-[0.9rem] font-bold tracking-[0.02em] text-[color:var(--sand-50)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[color:var(--sun-500)] focus-visible:outline-offset-[3px]"
                 >
                   <svg
                     aria-hidden="true"
