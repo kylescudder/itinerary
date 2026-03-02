@@ -3,19 +3,37 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { TouchEvent as ReactTouchEvent } from 'react'
 import {
   createItineraryItem,
+  deleteItineraryItem,
   getItineraryItems,
+  searchPlaceCache,
+  upsertPlaceCache,
   updateItineraryItem,
 } from '../lib/api'
 import { useAuth } from '../lib/auth'
 import { useTrip } from '../hooks/useTrip'
 import { useOfflineSync } from '../hooks/useOfflineSync'
 import type { ItineraryItem } from '../lib/types'
-import { formatDateLabel, formatTimeLabel, groupItemsByDate } from '../lib/utils'
+import {
+  formatDateLabel,
+  formatTimeLabel,
+  groupItemsByDate,
+} from '../lib/utils'
 import { loadGoogleMaps } from '../lib/googleMaps'
 
 export const Route = createFileRoute('/itinerary')({ component: Itinerary })
 
 const itemTypes = ['activity', 'meal', 'travel', 'stay', 'other']
+const travelModes = ['walk', 'car', 'transit'] as const
+
+type PlaceOption = {
+  source: 'google' | 'cache'
+  place_id: string
+  description: string
+  structured_formatting?: {
+    main_text?: string
+    secondary_text?: string
+  }
+}
 
 function Itinerary() {
   const navigate = useNavigate()
@@ -41,16 +59,45 @@ function Itinerary() {
   }, [authLoading, isAuthed, navigate])
   const [startTime, setStartTime] = useState('')
   const [placeQuery, setPlaceQuery] = useState('')
-  const [placeSuggestions, setPlaceSuggestions] = useState<
-    google.maps.places.AutocompletePrediction[]
-  >([])
+  const [placeSuggestions, setPlaceSuggestions] = useState<PlaceOption[]>([])
   const [placeLoading, setPlaceLoading] = useState(false)
   const [placeError, setPlaceError] = useState<string | null>(null)
   const [placeId, setPlaceId] = useState<string | null>(null)
   const [placeName, setPlaceName] = useState<string | null>(null)
   const [placeLat, setPlaceLat] = useState<number | null>(null)
   const [placeLng, setPlaceLng] = useState<number | null>(null)
-  const autocompleteRef = useRef<google.maps.places.AutocompleteService | null>(null)
+  const [travelMode, setTravelMode] = useState<(typeof travelModes)[number]>(
+    travelModes[0],
+  )
+  const [travelFromQuery, setTravelFromQuery] = useState('')
+  const [travelFromSuggestions, setTravelFromSuggestions] = useState<
+    PlaceOption[]
+  >([])
+  const [travelFromLoading, setTravelFromLoading] = useState(false)
+  const [travelFromPlaceId, setTravelFromPlaceId] = useState<string | null>(
+    null,
+  )
+  const [travelFromPlaceName, setTravelFromPlaceName] = useState<string | null>(
+    null,
+  )
+  const [travelFromLat, setTravelFromLat] = useState<number | null>(null)
+  const [travelFromLng, setTravelFromLng] = useState<number | null>(null)
+  const [travelToQuery, setTravelToQuery] = useState('')
+  const [travelToSuggestions, setTravelToSuggestions] = useState<PlaceOption[]>(
+    [],
+  )
+  const [travelToLoading, setTravelToLoading] = useState(false)
+  const [travelToPlaceId, setTravelToPlaceId] = useState<string | null>(null)
+  const [travelToPlaceName, setTravelToPlaceName] = useState<string | null>(
+    null,
+  )
+  const [travelToLat, setTravelToLat] = useState<number | null>(null)
+  const [travelToLng, setTravelToLng] = useState<number | null>(null)
+  const [isFormOpen, setIsFormOpen] = useState(false)
+  const [editingItem, setEditingItem] = useState<ItineraryItem | null>(null)
+  const autocompleteRef = useRef<google.maps.places.AutocompleteService | null>(
+    null,
+  )
   const placesRef = useRef<google.maps.places.PlacesService | null>(null)
   const directionsRef = useRef<google.maps.DirectionsService | null>(null)
   const [travelInfo, setTravelInfo] = useState<
@@ -64,11 +111,23 @@ function Itinerary() {
       }
     >
   >({})
+  const [manualTravelInfo, setManualTravelInfo] = useState<
+    Record<
+      string,
+      {
+        durationText: string
+        distanceMiles: number
+        mode: 'walk' | 'car' | 'transit'
+        note?: string
+      }
+    >
+  >({})
 
   useEffect(() => {
     if (!trip) return
     setItems([])
     setTravelInfo({})
+    setManualTravelInfo({})
   }, [trip?.id])
 
   const loadItems = useCallback(async () => {
@@ -118,7 +177,7 @@ function Itinerary() {
       pullStartY.current = start
       isPulling.current = true
     },
-    [isRefreshing]
+    [isRefreshing],
   )
 
   const handleTouchMove = useCallback((event: ReactTouchEvent) => {
@@ -163,7 +222,9 @@ function Itinerary() {
       } catch (err) {
         if (mounted) {
           setPlaceError(
-            err instanceof Error ? err.message : 'Unable to load Google Places.'
+            err instanceof Error
+              ? err.message
+              : 'Unable to load Google Places.',
           )
         }
       }
@@ -186,31 +247,280 @@ function Itinerary() {
     let active = true
     setPlaceLoading(true)
     const timer = setTimeout(() => {
-      const service = autocompleteRef.current
-      if (!service) {
-        setPlaceLoading(false)
-        return
-      }
-      service.getPlacePredictions({ input: placeQuery }, (predictions, status) => {
-        if (!active) return
-        if (
-          status !== google.maps.places.PlacesServiceStatus.OK ||
-          !predictions
-        ) {
-          setPlaceSuggestions([])
+      const run = async () => {
+        if (!trip) {
           setPlaceLoading(false)
           return
         }
-        setPlaceSuggestions(predictions)
-        setPlaceLoading(false)
-      })
+
+        try {
+          const cached = await searchPlaceCache(trip.id, placeQuery)
+          if (!active) return
+          if (cached.length) {
+            setPlaceSuggestions(
+              cached.map((entry) => ({
+                source: 'cache' as const,
+                place_id: entry.place_id,
+                description: entry.description,
+                structured_formatting: {
+                  main_text: entry.primary_text || entry.description,
+                  secondary_text: entry.secondary_text || '',
+                },
+              })),
+            )
+            setPlaceLoading(false)
+            return
+          }
+        } catch {
+          // Ignore cache lookup errors
+        }
+
+        const service = autocompleteRef.current
+        if (!service) {
+          setPlaceLoading(false)
+          return
+        }
+        service.getPlacePredictions(
+          { input: placeQuery },
+          (predictions, status) => {
+            if (!active) return
+            if (
+              status !== google.maps.places.PlacesServiceStatus.OK ||
+              !predictions
+            ) {
+              setPlaceSuggestions([])
+              setPlaceLoading(false)
+              return
+            }
+            const options = predictions.map((prediction) => ({
+              source: 'google' as const,
+              place_id: prediction.place_id,
+              description: prediction.description,
+              structured_formatting: {
+                main_text: prediction.structured_formatting?.main_text,
+                secondary_text:
+                  prediction.structured_formatting?.secondary_text,
+              },
+            }))
+            setPlaceSuggestions(options)
+            setPlaceLoading(false)
+            if (trip) {
+              const now = new Date().toISOString()
+              const entries = options.map((option) => ({
+                trip_id: trip.id,
+                place_id: option.place_id,
+                description: option.description,
+                primary_text: option.structured_formatting?.main_text || null,
+                secondary_text:
+                  option.structured_formatting?.secondary_text || null,
+                updated_at: now,
+              }))
+              upsertPlaceCache(entries).catch(() => {
+                // Ignore cache write errors
+              })
+            }
+          },
+        )
+      }
+
+      run()
     }, 250)
 
     return () => {
       active = false
       clearTimeout(timer)
     }
-  }, [placeQuery])
+  }, [placeQuery, trip])
+
+  useEffect(() => {
+    if (!travelFromQuery || travelFromQuery.length < 3) {
+      setTravelFromSuggestions([])
+      setTravelFromLoading(false)
+      return
+    }
+
+    let active = true
+    setTravelFromLoading(true)
+    const timer = setTimeout(() => {
+      const run = async () => {
+        if (!trip) {
+          setTravelFromLoading(false)
+          return
+        }
+
+        try {
+          const cached = await searchPlaceCache(trip.id, travelFromQuery)
+          if (!active) return
+          if (cached.length) {
+            setTravelFromSuggestions(
+              cached.map((entry) => ({
+                source: 'cache' as const,
+                place_id: entry.place_id,
+                description: entry.description,
+                structured_formatting: {
+                  main_text: entry.primary_text || entry.description,
+                  secondary_text: entry.secondary_text || '',
+                },
+              })),
+            )
+            setTravelFromLoading(false)
+            return
+          }
+        } catch {
+          // Ignore cache lookup errors
+        }
+
+        const service = autocompleteRef.current
+        if (!service) {
+          setTravelFromLoading(false)
+          return
+        }
+        service.getPlacePredictions(
+          { input: travelFromQuery },
+          (predictions, status) => {
+            if (!active) return
+            if (
+              status !== google.maps.places.PlacesServiceStatus.OK ||
+              !predictions
+            ) {
+              setTravelFromSuggestions([])
+              setTravelFromLoading(false)
+              return
+            }
+            const options = predictions.map((prediction) => ({
+              source: 'google' as const,
+              place_id: prediction.place_id,
+              description: prediction.description,
+              structured_formatting: {
+                main_text: prediction.structured_formatting?.main_text,
+                secondary_text:
+                  prediction.structured_formatting?.secondary_text,
+              },
+            }))
+            setTravelFromSuggestions(options)
+            setTravelFromLoading(false)
+            if (trip) {
+              const now = new Date().toISOString()
+              const entries = options.map((option) => ({
+                trip_id: trip.id,
+                place_id: option.place_id,
+                description: option.description,
+                primary_text: option.structured_formatting?.main_text || null,
+                secondary_text:
+                  option.structured_formatting?.secondary_text || null,
+                updated_at: now,
+              }))
+              upsertPlaceCache(entries).catch(() => {
+                // Ignore cache write errors
+              })
+            }
+          },
+        )
+      }
+
+      run()
+    }, 250)
+
+    return () => {
+      active = false
+      clearTimeout(timer)
+    }
+  }, [travelFromQuery, trip])
+
+  useEffect(() => {
+    if (!travelToQuery || travelToQuery.length < 3) {
+      setTravelToSuggestions([])
+      setTravelToLoading(false)
+      return
+    }
+
+    let active = true
+    setTravelToLoading(true)
+    const timer = setTimeout(() => {
+      const run = async () => {
+        if (!trip) {
+          setTravelToLoading(false)
+          return
+        }
+
+        try {
+          const cached = await searchPlaceCache(trip.id, travelToQuery)
+          if (!active) return
+          if (cached.length) {
+            setTravelToSuggestions(
+              cached.map((entry) => ({
+                source: 'cache' as const,
+                place_id: entry.place_id,
+                description: entry.description,
+                structured_formatting: {
+                  main_text: entry.primary_text || entry.description,
+                  secondary_text: entry.secondary_text || '',
+                },
+              })),
+            )
+            setTravelToLoading(false)
+            return
+          }
+        } catch {
+          // Ignore cache lookup errors
+        }
+
+        const service = autocompleteRef.current
+        if (!service) {
+          setTravelToLoading(false)
+          return
+        }
+        service.getPlacePredictions(
+          { input: travelToQuery },
+          (predictions, status) => {
+            if (!active) return
+            if (
+              status !== google.maps.places.PlacesServiceStatus.OK ||
+              !predictions
+            ) {
+              setTravelToSuggestions([])
+              setTravelToLoading(false)
+              return
+            }
+            const options = predictions.map((prediction) => ({
+              source: 'google' as const,
+              place_id: prediction.place_id,
+              description: prediction.description,
+              structured_formatting: {
+                main_text: prediction.structured_formatting?.main_text,
+                secondary_text:
+                  prediction.structured_formatting?.secondary_text,
+              },
+            }))
+            setTravelToSuggestions(options)
+            setTravelToLoading(false)
+            if (trip) {
+              const now = new Date().toISOString()
+              const entries = options.map((option) => ({
+                trip_id: trip.id,
+                place_id: option.place_id,
+                description: option.description,
+                primary_text: option.structured_formatting?.main_text || null,
+                secondary_text:
+                  option.structured_formatting?.secondary_text || null,
+                updated_at: now,
+              }))
+              upsertPlaceCache(entries).catch(() => {
+                // Ignore cache write errors
+              })
+            }
+          },
+        )
+      }
+
+      run()
+    }, 250)
+
+    return () => {
+      active = false
+      clearTimeout(timer)
+    }
+  }, [travelToQuery, trip])
 
   useEffect(() => {
     if (!placeQuery) {
@@ -222,18 +532,83 @@ function Itinerary() {
   }, [placeQuery])
 
   useEffect(() => {
+    if (!isFormOpen || typeof window === 'undefined') return
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setIsFormOpen(false)
+        setEditingItem(null)
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [isFormOpen])
+
+  useEffect(() => {
+    if (!travelFromQuery) {
+      setTravelFromPlaceId(null)
+      setTravelFromPlaceName(null)
+      setTravelFromLat(null)
+      setTravelFromLng(null)
+    }
+  }, [travelFromQuery])
+
+  useEffect(() => {
+    if (!travelToQuery) {
+      setTravelToPlaceId(null)
+      setTravelToPlaceName(null)
+      setTravelToLat(null)
+      setTravelToLng(null)
+    }
+  }, [travelToQuery])
+
+  useEffect(() => {
     const service = directionsRef.current
     if (!service) return
     if (items.length < 2) return
 
     const pairs = [] as Array<{
-      origin: ItineraryItem
-      destination: ItineraryItem
+      key: string
+      origin: { lat: number; lng: number }
+      destination: { lat: number; lng: number }
+      departureTime?: Date
     }>
 
     for (let i = 0; i < items.length - 1; i += 1) {
       const origin = items[i]
       const destination = items[i + 1]
+      if (!destination) continue
+
+      if (origin.type === 'travel' && destination.type !== 'travel') {
+        if (
+          origin.to_lat == null ||
+          origin.to_lng == null ||
+          destination.lat == null ||
+          destination.lng == null
+        ) {
+          continue
+        }
+        if (
+          origin.to_lat === destination.lat &&
+          origin.to_lng === destination.lng
+        ) {
+          continue
+        }
+        const key = `travel:${origin.id}:${destination.id}`
+        if (travelInfo[key]) continue
+        pairs.push({
+          key,
+          origin: { lat: origin.to_lat, lng: origin.to_lng },
+          destination: { lat: destination.lat, lng: destination.lng },
+          departureTime: destination.start_time
+            ? new Date(destination.start_time)
+            : undefined,
+        })
+        continue
+      }
+
+      if (origin.type === 'travel' || destination.type === 'travel') {
+        continue
+      }
       if (
         origin.lat == null ||
         origin.lng == null ||
@@ -242,9 +617,19 @@ function Itinerary() {
       ) {
         continue
       }
+      if (origin.lat === destination.lat && origin.lng === destination.lng) {
+        continue
+      }
       const key = `${origin.id}:${destination.id}`
       if (travelInfo[key]) continue
-      pairs.push({ origin, destination })
+      pairs.push({
+        key,
+        origin: { lat: origin.lat, lng: origin.lng },
+        destination: { lat: destination.lat, lng: destination.lng },
+        departureTime: destination.start_time
+          ? new Date(destination.start_time)
+          : undefined,
+      })
     }
 
     if (!pairs.length) return
@@ -252,16 +637,16 @@ function Itinerary() {
     const toMiles = (meters: number) => meters / 1609.344
 
     const requestRoute = (
-      origin: ItineraryItem,
-      destination: ItineraryItem,
+      origin: { lat: number; lng: number },
+      destination: { lat: number; lng: number },
       travelMode: google.maps.TravelMode,
-      departureTime?: Date
+      departureTime?: Date,
     ) =>
       new Promise<google.maps.DirectionsResult>((resolve, reject) => {
         service.route(
           {
-            origin: { lat: origin.lat!, lng: origin.lng! },
-            destination: { lat: destination.lat!, lng: destination.lng! },
+            origin,
+            destination,
             travelMode,
             transitOptions: departureTime ? { departureTime } : undefined,
           },
@@ -271,40 +656,41 @@ function Itinerary() {
             } else {
               reject(new Error(status))
             }
-          }
+          },
         )
       })
 
     const run = async () => {
       for (const pair of pairs) {
-        const key = `${pair.origin.id}:${pair.destination.id}`
+        const key = pair.key
         try {
           const walking = await requestRoute(
             pair.origin,
             pair.destination,
-            google.maps.TravelMode.WALKING
+            google.maps.TravelMode.WALKING,
           )
           const leg = walking.routes[0]?.legs?.[0]
           const walkingSeconds = leg?.duration?.value ?? 0
           const distanceMeters = leg?.distance?.value ?? 0
           if (walkingSeconds > 1800) {
             try {
-              const departureTime = pair.destination.start_time
-                ? new Date(pair.destination.start_time)
-                : new Date()
               const transit = await requestRoute(
                 pair.origin,
                 pair.destination,
                 google.maps.TravelMode.TRANSIT,
-                departureTime
+                pair.departureTime || new Date(),
               )
               const transitLeg = transit.routes[0]?.legs?.[0]
-              const transitSeconds = transitLeg?.duration?.value ?? walkingSeconds
-              const transitMeters = transitLeg?.distance?.value ?? distanceMeters
+              const transitSeconds =
+                transitLeg?.duration?.value ?? walkingSeconds
+              const transitMeters =
+                transitLeg?.distance?.value ?? distanceMeters
               setTravelInfo((prev) => ({
                 ...prev,
                 [key]: {
-                  durationText: transitLeg?.duration?.text || `${Math.round(transitSeconds / 60)} min`,
+                  durationText:
+                    transitLeg?.duration?.text ||
+                    `${Math.round(transitSeconds / 60)} min`,
                   distanceMiles: toMiles(transitMeters),
                   mode: 'transit',
                 },
@@ -313,7 +699,9 @@ function Itinerary() {
               setTravelInfo((prev) => ({
                 ...prev,
                 [key]: {
-                  durationText: leg?.duration?.text || `${Math.round(walkingSeconds / 60)} min`,
+                  durationText:
+                    leg?.duration?.text ||
+                    `${Math.round(walkingSeconds / 60)} min`,
                   distanceMiles: toMiles(distanceMeters),
                   mode: 'walk',
                   note: 'No transit route found',
@@ -324,7 +712,9 @@ function Itinerary() {
             setTravelInfo((prev) => ({
               ...prev,
               [key]: {
-                durationText: leg?.duration?.text || `${Math.round(walkingSeconds / 60)} min`,
+                durationText:
+                  leg?.duration?.text ||
+                  `${Math.round(walkingSeconds / 60)} min`,
                 distanceMiles: toMiles(distanceMeters),
                 mode: 'walk',
               },
@@ -339,12 +729,195 @@ function Itinerary() {
     run()
   }, [items, travelInfo])
 
+  useEffect(() => {
+    const service = directionsRef.current
+    if (!service) return
+
+    const travelItems = items.filter(
+      (item) =>
+        item.type === 'travel' &&
+        item.from_lat != null &&
+        item.from_lng != null &&
+        item.to_lat != null &&
+        item.to_lng != null,
+    )
+
+    if (!travelItems.length) return
+
+    const toMiles = (meters: number) => meters / 1609.344
+
+    const requestRoute = (
+      item: ItineraryItem,
+      travelMode: google.maps.TravelMode,
+      departureTime?: Date,
+    ) =>
+      new Promise<google.maps.DirectionsResult>((resolve, reject) => {
+        service.route(
+          {
+            origin: { lat: item.from_lat!, lng: item.from_lng! },
+            destination: { lat: item.to_lat!, lng: item.to_lng! },
+            travelMode,
+            transitOptions: departureTime ? { departureTime } : undefined,
+          },
+          (result, status) => {
+            if (status === google.maps.DirectionsStatus.OK && result) {
+              resolve(result)
+            } else {
+              reject(new Error(status))
+            }
+          },
+        )
+      })
+
+    const run = async () => {
+      for (const item of travelItems) {
+        if (manualTravelInfo[item.id]) continue
+        const mode = item.travel_mode || 'walk'
+        const travelMode =
+          mode === 'car'
+            ? google.maps.TravelMode.DRIVING
+            : mode === 'transit'
+              ? google.maps.TravelMode.TRANSIT
+              : google.maps.TravelMode.WALKING
+        try {
+          const departureTime = item.start_time
+            ? new Date(item.start_time)
+            : new Date()
+          const result = await requestRoute(
+            item,
+            travelMode,
+            mode === 'transit' ? departureTime : undefined,
+          )
+          const leg = result.routes[0]?.legs?.[0]
+          const durationSeconds = leg?.duration?.value ?? 0
+          const distanceMeters = leg?.distance?.value ?? 0
+          setManualTravelInfo((prev) => ({
+            ...prev,
+            [item.id]: {
+              durationText:
+                leg?.duration?.text ||
+                `${Math.round(durationSeconds / 60)} min`,
+              distanceMiles: toMiles(distanceMeters),
+              mode,
+            },
+          }))
+        } catch {
+          // Ignore route errors
+        }
+      }
+    }
+
+    run()
+  }, [items, manualTravelInfo])
+
   const grouped = useMemo(() => groupItemsByDate(items), [items])
+
+  const sortItems = (next: ItineraryItem[]) =>
+    [...next].sort((a, b) => {
+      if (!a.start_time && !b.start_time) return 0
+      if (!a.start_time) return 1
+      if (!b.start_time) return -1
+      return new Date(a.start_time).getTime() - new Date(b.start_time).getTime()
+    })
+
+  const toLocalDateTimeInput = (value: string | null) => {
+    if (!value) return ''
+    const date = new Date(value)
+    const offsetMs = date.getTimezoneOffset() * 60000
+    return new Date(date.getTime() - offsetMs).toISOString().slice(0, 16)
+  }
+
+  const resetPlaceFields = () => {
+    setPlaceQuery('')
+    setPlaceSuggestions([])
+    setPlaceId(null)
+    setPlaceName(null)
+    setPlaceLat(null)
+    setPlaceLng(null)
+  }
+
+  const resetTravelFields = () => {
+    setTravelMode(travelModes[0])
+    setTravelFromQuery('')
+    setTravelFromSuggestions([])
+    setTravelFromPlaceId(null)
+    setTravelFromPlaceName(null)
+    setTravelFromLat(null)
+    setTravelFromLng(null)
+    setTravelToQuery('')
+    setTravelToSuggestions([])
+    setTravelToPlaceId(null)
+    setTravelToPlaceName(null)
+    setTravelToLat(null)
+    setTravelToLng(null)
+  }
+
+  const resetForm = () => {
+    setType(itemTypes[0])
+    setTitle('')
+    setNotes('')
+    setStartTime('')
+    resetPlaceFields()
+    resetTravelFields()
+  }
+
+  const openAddForm = () => {
+    setEditingItem(null)
+    setError(null)
+    resetForm()
+    setIsFormOpen(true)
+  }
+
+  const openEditForm = (item: ItineraryItem) => {
+    setEditingItem(item)
+    setError(null)
+    setType(item.type)
+    setTitle(item.title)
+    setNotes(item.notes || '')
+    setStartTime(toLocalDateTimeInput(item.start_time))
+    if (item.type === 'travel') {
+      resetPlaceFields()
+      setTravelMode(item.travel_mode || travelModes[0])
+      setTravelFromQuery(item.from_place_name || '')
+      setTravelFromSuggestions([])
+      setTravelFromPlaceId(item.from_place_id || null)
+      setTravelFromPlaceName(item.from_place_name || null)
+      setTravelFromLat(item.from_lat ?? null)
+      setTravelFromLng(item.from_lng ?? null)
+      setTravelToQuery(item.to_place_name || '')
+      setTravelToSuggestions([])
+      setTravelToPlaceId(item.to_place_id || null)
+      setTravelToPlaceName(item.to_place_name || null)
+      setTravelToLat(item.to_lat ?? null)
+      setTravelToLng(item.to_lng ?? null)
+    } else {
+      resetTravelFields()
+      setPlaceQuery(item.place_name || '')
+      setPlaceSuggestions([])
+      setPlaceId(item.place_id || null)
+      setPlaceName(item.place_name || null)
+      setPlaceLat(item.lat ?? null)
+      setPlaceLng(item.lng ?? null)
+    }
+    setIsFormOpen(true)
+  }
+
+  const closeForm = () => {
+    setIsFormOpen(false)
+    setEditingItem(null)
+  }
 
   const handleAdd = async () => {
     if (!trip) return
     if (!title.trim()) {
       setError('Please add a title for the itinerary item.')
+      return
+    }
+    const isTravel = type === 'travel'
+    const fromLabel = travelFromPlaceName || travelFromQuery.trim() || null
+    const toLabel = travelToPlaceName || travelToQuery.trim() || null
+    if (isTravel && (!fromLabel || !toLabel)) {
+      setError('Please add both a from and to location for travel.')
       return
     }
     setLoading(true)
@@ -357,26 +930,106 @@ function Itinerary() {
         notes: notes.trim() || null,
         start_time: startTime ? new Date(startTime).toISOString() : null,
         done: false,
-        lat: placeLat,
-        lng: placeLng,
-        place_name: placeName,
-        place_id: placeId,
+        travel_mode: isTravel ? travelMode : null,
+        from_place_name: isTravel ? fromLabel : null,
+        from_place_id: isTravel ? travelFromPlaceId : null,
+        from_lat: isTravel ? travelFromLat : null,
+        from_lng: isTravel ? travelFromLng : null,
+        to_place_name: isTravel ? toLabel : null,
+        to_place_id: isTravel ? travelToPlaceId : null,
+        to_lat: isTravel ? travelToLat : null,
+        to_lng: isTravel ? travelToLng : null,
+        from_done: isTravel ? false : null,
+        to_done: isTravel ? false : null,
+        lat: isTravel ? null : placeLat,
+        lng: isTravel ? null : placeLng,
+        place_name: isTravel ? null : placeName,
+        place_id: isTravel ? null : placeId,
       }
       const created = await createItineraryItem(payload)
-      setItems((prev) => [created, ...prev])
+      setItems((prev) => sortItems([...prev, created]))
       setTitle('')
       setNotes('')
       setStartTime('')
-      setPlaceQuery('')
-      setPlaceSuggestions([])
-      setPlaceId(null)
-      setPlaceName(null)
-      setPlaceLat(null)
-      setPlaceLng(null)
+      if (isTravel) {
+        resetTravelFields()
+      } else {
+        resetPlaceFields()
+      }
+      closeForm()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unable to add item.')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleUpdate = async () => {
+    if (!trip || !editingItem) return
+    if (!title.trim()) {
+      setError('Please add a title for the itinerary item.')
+      return
+    }
+    const isTravel = type === 'travel'
+    const fromLabel = travelFromPlaceName || travelFromQuery.trim() || null
+    const toLabel = travelToPlaceName || travelToQuery.trim() || null
+    if (isTravel && (!fromLabel || !toLabel)) {
+      setError('Please add both a from and to location for travel.')
+      return
+    }
+    setLoading(true)
+    setError(null)
+    try {
+      const updates = {
+        title: title.trim(),
+        notes: notes.trim() || null,
+        start_time: startTime ? new Date(startTime).toISOString() : null,
+        travel_mode: isTravel ? travelMode : null,
+        from_place_name: isTravel ? fromLabel : null,
+        from_place_id: isTravel ? travelFromPlaceId : null,
+        from_lat: isTravel ? travelFromLat : null,
+        from_lng: isTravel ? travelFromLng : null,
+        to_place_name: isTravel ? toLabel : null,
+        to_place_id: isTravel ? travelToPlaceId : null,
+        to_lat: isTravel ? travelToLat : null,
+        to_lng: isTravel ? travelToLng : null,
+        lat: isTravel ? null : placeLat,
+        lng: isTravel ? null : placeLng,
+        place_name: isTravel ? null : placeName,
+        place_id: isTravel ? null : placeId,
+        from_done: isTravel ? editingItem.from_done : null,
+        to_done: isTravel ? editingItem.to_done : null,
+      }
+      const updated = await updateItineraryItem(
+        editingItem.id,
+        updates,
+        editingItem,
+      )
+      setItems((prev) =>
+        sortItems(
+          prev.map((entry) => (entry.id === updated.id ? updated : entry)),
+        ),
+      )
+      closeForm()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unable to update item.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleDelete = async (item: ItineraryItem) => {
+    if (typeof window !== 'undefined') {
+      const confirmed = window.confirm(
+        'Delete this itinerary item? This cannot be undone.',
+      )
+      if (!confirmed) return
+    }
+    try {
+      await deleteItineraryItem(item.id, item)
+      setItems((prev) => prev.filter((entry) => entry.id !== item.id))
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unable to delete item.')
     }
   }
 
@@ -385,19 +1038,17 @@ function Itinerary() {
       const updated = await updateItineraryItem(
         item.id,
         { done: !item.done },
-        item
+        item,
       )
       setItems((prev) =>
-        prev.map((entry) => (entry.id === updated.id ? updated : entry))
+        prev.map((entry) => (entry.id === updated.id ? updated : entry)),
       )
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unable to update item.')
     }
   }
 
-  const handleSelectPlace = (
-    prediction: google.maps.places.AutocompletePrediction
-  ) => {
+  const handleSelectPlace = (prediction: PlaceOption) => {
     setPlaceQuery(prediction.description)
     setPlaceSuggestions([])
     setPlaceError(null)
@@ -426,21 +1077,172 @@ function Itinerary() {
         }
         setPlaceId(result.place_id || prediction.place_id)
         setPlaceName(
-          result.name || result.formatted_address || prediction.description
+          result.name || result.formatted_address || prediction.description,
         )
         const location = result.geometry?.location
         if (location) {
           setPlaceLat(location.lat())
           setPlaceLng(location.lng())
         }
-      }
+      },
     )
+  }
+
+  const handleSelectTravelPlace = (
+    direction: 'from' | 'to',
+    prediction: PlaceOption,
+  ) => {
+    const description = prediction.description
+    if (direction === 'from') {
+      setTravelFromQuery(description)
+      setTravelFromSuggestions([])
+    } else {
+      setTravelToQuery(description)
+      setTravelToSuggestions([])
+    }
+    setPlaceError(null)
+
+    const mainText = prediction.structured_formatting?.main_text
+    const fallbackName = mainText || description
+
+    const applySelection = (
+      name: string,
+      placeId: string,
+      lat?: number | null,
+      lng?: number | null,
+    ) => {
+      if (direction === 'from') {
+        setTravelFromPlaceName(name)
+        setTravelFromPlaceId(placeId)
+        if (lat != null && lng != null) {
+          setTravelFromLat(lat)
+          setTravelFromLng(lng)
+        }
+      } else {
+        setTravelToPlaceName(name)
+        setTravelToPlaceId(placeId)
+        if (lat != null && lng != null) {
+          setTravelToLat(lat)
+          setTravelToLng(lng)
+        }
+      }
+
+      if (!title.trim()) {
+        const nextFrom =
+          direction === 'from' ? name : travelFromPlaceName || travelFromQuery
+        const nextTo =
+          direction === 'to' ? name : travelToPlaceName || travelToQuery
+        if (nextFrom && nextTo) {
+          setTitle(`${nextFrom} to ${nextTo}`)
+        }
+      }
+    }
+
+    const placesService = placesRef.current
+    if (!placesService) {
+      applySelection(fallbackName, prediction.place_id)
+      return
+    }
+
+    placesService.getDetails(
+      {
+        placeId: prediction.place_id,
+        fields: ['geometry', 'name', 'formatted_address', 'place_id'],
+      },
+      (result, status) => {
+        if (status !== google.maps.places.PlacesServiceStatus.OK || !result) {
+          applySelection(fallbackName, prediction.place_id)
+          return
+        }
+        const name = result.name || result.formatted_address || fallbackName
+        const location = result.geometry?.location
+        applySelection(
+          name,
+          result.place_id || prediction.place_id,
+          location?.lat(),
+          location?.lng(),
+        )
+      },
+    )
+  }
+
+  const handleToggleTravelDone = async (
+    item: ItineraryItem,
+    field: 'from_done' | 'to_done',
+  ) => {
+    try {
+      const updated = await updateItineraryItem(
+        item.id,
+        { [field]: !item[field] },
+        item,
+      )
+      setItems((prev) =>
+        prev.map((entry) => (entry.id === updated.id ? updated : entry)),
+      )
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unable to update item.')
+    }
+  }
+
+  const buildTravelDirectionsUrl = (item: ItineraryItem) => {
+    const originValue =
+      item.from_lat != null && item.from_lng != null
+        ? `${item.from_lat},${item.from_lng}`
+        : item.from_place_name || item.title
+    const destinationValue =
+      item.to_lat != null && item.to_lng != null
+        ? `${item.to_lat},${item.to_lng}`
+        : item.to_place_name || item.title
+    const mode = item.travel_mode || 'walk'
+
+    const isAppleDevice = /iPad|iPhone|iPod|Macintosh/i.test(
+      navigator.userAgent,
+    )
+
+    if (isAppleDevice) {
+      const flag = mode === 'transit' ? 'r' : mode === 'car' ? 'd' : 'w'
+      return `https://maps.apple.com/?saddr=${encodeURIComponent(
+        originValue,
+      )}&daddr=${encodeURIComponent(destinationValue)}&dirflg=${flag}`
+    }
+
+    const travelMode =
+      mode === 'transit' ? 'transit' : mode === 'car' ? 'driving' : 'walking'
+    return `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(
+      originValue,
+    )}&destination=${encodeURIComponent(
+      destinationValue,
+    )}&travelmode=${travelMode}`
+  }
+
+  const buildDirectionsUrlFromPoints = (
+    originValue: string,
+    destinationValue: string,
+    mode: 'walk' | 'transit',
+  ) => {
+    const isAppleDevice = /iPad|iPhone|iPod|Macintosh/i.test(
+      navigator.userAgent,
+    )
+
+    if (isAppleDevice) {
+      const flag = mode === 'transit' ? 'r' : 'w'
+      return `https://maps.apple.com/?saddr=${encodeURIComponent(
+        originValue,
+      )}&daddr=${encodeURIComponent(destinationValue)}&dirflg=${flag}`
+    }
+
+    const travelMode = mode === 'transit' ? 'transit' : 'walking'
+    return `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(
+      originValue,
+    )}&destination=${encodeURIComponent(
+      destinationValue,
+    )}&travelmode=${travelMode}`
   }
 
   const buildDirectionsUrl = (
     origin: ItineraryItem,
     destination: ItineraryItem,
-    mode: 'walk' | 'transit'
+    mode: 'walk' | 'transit',
   ) => {
     const originValue =
       origin.lat != null && origin.lng != null
@@ -451,30 +1253,218 @@ function Itinerary() {
         ? `${destination.lat},${destination.lng}`
         : destination.place_name || destination.title
 
-    const isAppleDevice = /iPad|iPhone|iPod|Macintosh/i.test(
-      navigator.userAgent
-    )
-
-    if (isAppleDevice) {
-      const flag = mode === 'transit' ? 'r' : 'w'
-      return `https://maps.apple.com/?saddr=${encodeURIComponent(
-        originValue
-      )}&daddr=${encodeURIComponent(destinationValue)}&dirflg=${flag}`
-    }
-
-    const travelMode = mode === 'transit' ? 'transit' : 'walking'
-    return `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(
-      originValue
-    )}&destination=${encodeURIComponent(
-      destinationValue
-    )}&travelmode=${travelMode}`
+    return buildDirectionsUrlFromPoints(originValue, destinationValue, mode)
   }
+
+  const isEditMode = !!editingItem
+  const addForm = (
+    <div className="space-y-4">
+      <label className="text-sm font-semibold text-[color:var(--ink-700)]">
+        Type
+        <select
+          value={type}
+          onChange={(event) => setType(event.target.value)}
+          disabled={isEditMode}
+          className="mt-2 w-full rounded-2xl border border-[color:var(--sand-300)] bg-white px-4 py-3 text-sm disabled:cursor-not-allowed disabled:opacity-70"
+        >
+          {itemTypes.map((value) => (
+            <option key={value} value={value}>
+              {value}
+            </option>
+          ))}
+        </select>
+      </label>
+      {type === 'travel' ? (
+        <>
+          <label className="text-sm font-semibold text-[color:var(--ink-700)]">
+            From
+            <div className="relative mt-2">
+              <input
+                value={travelFromQuery}
+                onChange={(event) => setTravelFromQuery(event.target.value)}
+                className="w-full rounded-2xl border border-[color:var(--sand-300)] bg-white px-4 py-3 text-sm"
+                placeholder="Search starting point"
+              />
+              {travelFromLoading ? (
+                <div className="absolute right-3 top-3 text-xs text-[color:var(--ink-600)]">
+                  Searching...
+                </div>
+              ) : null}
+            </div>
+            {placeError ? (
+              <p className="mt-2 text-xs text-[color:var(--clay-600)]">
+                {placeError}
+              </p>
+            ) : null}
+            {travelFromSuggestions.length ? (
+              <div className="mt-2 overflow-hidden rounded-2xl border border-[color:var(--sand-300)] bg-white shadow">
+                {travelFromSuggestions.map((prediction) => (
+                  <button
+                    key={prediction.place_id}
+                    type="button"
+                    onClick={() => handleSelectTravelPlace('from', prediction)}
+                    className="flex w-full flex-col gap-1 px-4 py-3 text-left text-sm hover:bg-[color:var(--sand-100)]"
+                  >
+                    <span className="font-semibold text-[color:var(--ink-900)]">
+                      {prediction.structured_formatting?.main_text ||
+                        prediction.description}
+                    </span>
+                    <span className="text-xs text-[color:var(--ink-600)]">
+                      {prediction.structured_formatting?.secondary_text || ''}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            ) : null}
+          </label>
+          <label className="text-sm font-semibold text-[color:var(--ink-700)]">
+            To
+            <div className="relative mt-2">
+              <input
+                value={travelToQuery}
+                onChange={(event) => setTravelToQuery(event.target.value)}
+                className="w-full rounded-2xl border border-[color:var(--sand-300)] bg-white px-4 py-3 text-sm"
+                placeholder="Search destination"
+              />
+              {travelToLoading ? (
+                <div className="absolute right-3 top-3 text-xs text-[color:var(--ink-600)]">
+                  Searching...
+                </div>
+              ) : null}
+            </div>
+            {placeError ? (
+              <p className="mt-2 text-xs text-[color:var(--clay-600)]">
+                {placeError}
+              </p>
+            ) : null}
+            {travelToSuggestions.length ? (
+              <div className="mt-2 overflow-hidden rounded-2xl border border-[color:var(--sand-300)] bg-white shadow">
+                {travelToSuggestions.map((prediction) => (
+                  <button
+                    key={prediction.place_id}
+                    type="button"
+                    onClick={() => handleSelectTravelPlace('to', prediction)}
+                    className="flex w-full flex-col gap-1 px-4 py-3 text-left text-sm hover:bg-[color:var(--sand-100)]"
+                  >
+                    <span className="font-semibold text-[color:var(--ink-900)]">
+                      {prediction.structured_formatting?.main_text ||
+                        prediction.description}
+                    </span>
+                    <span className="text-xs text-[color:var(--ink-600)]">
+                      {prediction.structured_formatting?.secondary_text || ''}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            ) : null}
+          </label>
+          <label className="text-sm font-semibold text-[color:var(--ink-700)]">
+            Travel mode
+            <select
+              value={travelMode}
+              onChange={(event) =>
+                setTravelMode(
+                  event.target.value as (typeof travelModes)[number],
+                )
+              }
+              className="mt-2 w-full rounded-2xl border border-[color:var(--sand-300)] bg-white px-4 py-3 text-sm"
+            >
+              {travelModes.map((value) => (
+                <option key={value} value={value}>
+                  {value}
+                </option>
+              ))}
+            </select>
+          </label>
+        </>
+      ) : (
+        <label className="text-sm font-semibold text-[color:var(--ink-700)]">
+          Place search
+          <div className="relative mt-2">
+            <input
+              value={placeQuery}
+              onChange={(event) => setPlaceQuery(event.target.value)}
+              className="w-full rounded-2xl border border-[color:var(--sand-300)] bg-white px-4 py-3 text-sm"
+              placeholder="Search for a place"
+            />
+            {placeLoading ? (
+              <div className="absolute right-3 top-3 text-xs text-[color:var(--ink-600)]">
+                Searching...
+              </div>
+            ) : null}
+          </div>
+          {placeError ? (
+            <p className="mt-2 text-xs text-[color:var(--clay-600)]">
+              {placeError}
+            </p>
+          ) : null}
+          {placeSuggestions.length ? (
+            <div className="mt-2 overflow-hidden rounded-2xl border border-[color:var(--sand-300)] bg-white shadow">
+              {placeSuggestions.map((prediction) => (
+                <button
+                  key={prediction.place_id}
+                  type="button"
+                  onClick={() => handleSelectPlace(prediction)}
+                  className="flex w-full flex-col gap-1 px-4 py-3 text-left text-sm hover:bg-[color:var(--sand-100)]"
+                >
+                  <span className="font-semibold text-[color:var(--ink-900)]">
+                    {prediction.structured_formatting?.main_text ||
+                      prediction.description}
+                  </span>
+                  <span className="text-xs text-[color:var(--ink-600)]">
+                    {prediction.structured_formatting?.secondary_text || ''}
+                  </span>
+                </button>
+              ))}
+            </div>
+          ) : null}
+        </label>
+      )}
+      <label className="text-sm font-semibold text-[color:var(--ink-700)]">
+        Title
+        <input
+          value={title}
+          onChange={(event) => setTitle(event.target.value)}
+          className="mt-2 w-full rounded-2xl border border-[color:var(--sand-300)] bg-white px-4 py-3 text-sm"
+          placeholder="Tea ceremony"
+        />
+      </label>
+      <label className="text-sm font-semibold text-[color:var(--ink-700)]">
+        Start time
+        <input
+          type="datetime-local"
+          value={startTime}
+          onChange={(event) => setStartTime(event.target.value)}
+          className="mt-2 w-full rounded-2xl border border-[color:var(--sand-300)] bg-white px-4 py-3 text-sm"
+        />
+      </label>
+      <label className="text-sm font-semibold text-[color:var(--ink-700)]">
+        Notes
+        <textarea
+          value={notes}
+          onChange={(event) => setNotes(event.target.value)}
+          className="mt-2 h-28 w-full rounded-2xl border border-[color:var(--sand-300)] bg-white px-4 py-3 text-sm"
+          placeholder="Remember to book by Friday."
+        />
+      </label>
+      <button
+        type="button"
+        onClick={isEditMode ? handleUpdate : handleAdd}
+        disabled={loading}
+        className="focus-ring w-full rounded-2xl bg-[color:var(--sun-400)] px-5 py-3 text-sm font-semibold text-[color:var(--ink-900)]"
+      >
+        {loading ? 'Saving...' : isEditMode ? 'Save changes' : 'Add item'}
+      </button>
+    </div>
+  )
 
   if (authLoading || tripLoading) {
     return (
       <main className="page-shell">
         <div className="section-shell mx-auto max-w-5xl px-8 py-12">
-          <p className="text-sm text-[color:var(--ink-600)]">Loading itinerary...</p>
+          <p className="text-sm text-[color:var(--ink-600)]">
+            Loading itinerary...
+          </p>
         </div>
       </main>
     )
@@ -563,7 +1553,9 @@ function Itinerary() {
 
           {loading ? (
             <div className="section-shell px-8 py-8">
-              <p className="text-sm text-[color:var(--ink-600)]">Loading items...</p>
+              <p className="text-sm text-[color:var(--ink-600)]">
+                Loading items...
+              </p>
             </div>
           ) : grouped.length ? (
             grouped.map((group) => (
@@ -574,55 +1566,287 @@ function Itinerary() {
                 <div className="mt-4 space-y-3">
                   {group.items.map((item, index) => {
                     const next = group.items[index + 1]
-                    const key = next ? `${item.id}:${next.id}` : null
-                    const info = key ? travelInfo[key] : null
-                    const hasCoords =
+                    const isTravel = item.type === 'travel'
+                    const sameLocation =
                       !!next &&
+                      !isTravel &&
+                      next.type !== 'travel' &&
+                      ((item.place_id &&
+                        next.place_id &&
+                        item.place_id === next.place_id) ||
+                        (item.lat != null &&
+                          item.lng != null &&
+                          next.lat != null &&
+                          next.lng != null &&
+                          item.lat === next.lat &&
+                          item.lng === next.lng))
+                    const sameLocationFromTravel =
+                      !!next &&
+                      isTravel &&
+                      next.type !== 'travel' &&
+                      ((item.to_place_id &&
+                        next.place_id &&
+                        item.to_place_id === next.place_id) ||
+                        (item.to_lat != null &&
+                          item.to_lng != null &&
+                          next.lat != null &&
+                          next.lng != null &&
+                          item.to_lat === next.lat &&
+                          item.to_lng === next.lng))
+                    const showAutoTravel =
+                      !!next &&
+                      !isTravel &&
+                      next.type !== 'travel' &&
+                      !sameLocation
+                    const showAutoTravelFromTravel =
+                      !!next &&
+                      isTravel &&
+                      next.type !== 'travel' &&
+                      !sameLocationFromTravel
+                    const key = showAutoTravel ? `${item.id}:${next.id}` : null
+                    const travelKey = showAutoTravelFromTravel
+                      ? `travel:${item.id}:${next.id}`
+                      : null
+                    const info = key
+                      ? travelInfo[key]
+                      : travelKey
+                        ? travelInfo[travelKey]
+                        : null
+                    const hasCoords =
+                      showAutoTravel &&
                       item.lat != null &&
                       item.lng != null &&
                       next.lat != null &&
                       next.lng != null
+                    const hasTravelCoords =
+                      showAutoTravelFromTravel &&
+                      item.to_lat != null &&
+                      item.to_lng != null &&
+                      next.lat != null &&
+                      next.lng != null
+                    const manualInfo = isTravel
+                      ? manualTravelInfo[item.id]
+                      : null
+                    const hasManualTravelCoords =
+                      isTravel &&
+                      item.from_lat != null &&
+                      item.from_lng != null &&
+                      item.to_lat != null &&
+                      item.to_lng != null
+                    const fromDone = !!item.from_done
+                    const toDone = !!item.to_done
+                    const travelModeLabel =
+                      item.travel_mode === 'car'
+                        ? 'Car'
+                        : item.travel_mode === 'transit'
+                          ? 'Transit'
+                          : 'Walk'
+
+                    if (isTravel) {
+                      return (
+                        <div key={item.id} className="space-y-3">
+                          <div className="rounded-2xl border border-[color:var(--sand-300)] bg-white px-4 py-3">
+                            <div className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-start">
+                              <div>
+                                <p
+                                  className={`text-sm font-semibold ${
+                                    fromDone
+                                      ? 'text-[color:var(--ink-600)] line-through'
+                                      : 'text-[color:var(--ink-900)]'
+                                  }`}
+                                >
+                                  {item.from_place_name || 'From location'}
+                                </p>
+                                <p className="text-xs text-[color:var(--ink-600)]">
+                                  {item.start_time
+                                    ? formatTimeLabel(item.start_time)
+                                    : 'Anytime'}{' '}
+                                  · travel · From · {travelModeLabel}
+                                </p>
+                                {item.notes ? (
+                                  <p className="mt-2 text-xs text-[color:var(--ink-600)]">
+                                    {item.notes}
+                                  </p>
+                                ) : null}
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  handleToggleTravelDone(item, 'from_done')
+                                }
+                                className="focus-ring h-fit rounded-full border border-[color:var(--sand-300)] bg-white px-3 py-1.5 text-[10px] font-semibold text-[color:var(--ink-700)]"
+                              >
+                                {fromDone ? 'Undo' : 'Done'}
+                              </button>
+                            </div>
+                            <div className="mt-3">
+                              <div className="grid w-full grid-cols-2 overflow-hidden rounded-full border border-[color:var(--sand-300)] bg-[color:var(--sand-100)] text-[10px] font-semibold text-[color:var(--ink-700)]">
+                                <button
+                                  type="button"
+                                  onClick={() => openEditForm(item)}
+                                  className="focus-ring px-2.5 py-1.5"
+                                >
+                                  Edit
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleDelete(item)}
+                                  className="focus-ring border-l border-[color:var(--sand-300)] px-2.5 py-1.5 text-[color:var(--clay-600)]"
+                                >
+                                  Delete
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+
+                          <a
+                            href={buildTravelDirectionsUrl(item)}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="block rounded-2xl border border-dashed border-[color:var(--sand-300)] px-4 py-3 text-xs text-[color:var(--ink-600)] transition hover:border-[color:var(--sun-400)] hover:text-[color:var(--ink-900)]"
+                          >
+                            {hasManualTravelCoords ? (
+                              manualInfo ? (
+                                <span>
+                                  Travel {manualInfo.distanceMiles.toFixed(1)}{' '}
+                                  mi · {manualInfo.durationText} ·{' '}
+                                  {travelModeLabel}
+                                </span>
+                              ) : (
+                                <span>Calculating travel time…</span>
+                              )
+                            ) : (
+                              <span>Add locations to see travel time.</span>
+                            )}
+                          </a>
+
+                          <div className="rounded-2xl border border-[color:var(--sand-300)] bg-white px-4 py-3">
+                            <div className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-start">
+                              <div>
+                                <p
+                                  className={`text-sm font-semibold ${
+                                    toDone
+                                      ? 'text-[color:var(--ink-600)] line-through'
+                                      : 'text-[color:var(--ink-900)]'
+                                  }`}
+                                >
+                                  {item.to_place_name || 'To location'}
+                                </p>
+                                <p className="text-xs text-[color:var(--ink-600)]">
+                                  {item.start_time
+                                    ? formatTimeLabel(item.start_time)
+                                    : 'Anytime'}{' '}
+                                  · travel · To · {travelModeLabel}
+                                </p>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  handleToggleTravelDone(item, 'to_done')
+                                }
+                                className="focus-ring h-fit rounded-full border border-[color:var(--sand-300)] bg-white px-3 py-1.5 text-[10px] font-semibold text-[color:var(--ink-700)]"
+                              >
+                                {toDone ? 'Undo' : 'Done'}
+                              </button>
+                            </div>
+                          </div>
+                          {showAutoTravelFromTravel ? (
+                            <a
+                              href={buildDirectionsUrlFromPoints(
+                                item.to_lat != null && item.to_lng != null
+                                  ? `${item.to_lat},${item.to_lng}`
+                                  : item.to_place_name || item.title,
+                                next.lat != null && next.lng != null
+                                  ? `${next.lat},${next.lng}`
+                                  : next.place_name || next.title,
+                                info?.mode || 'walk',
+                              )}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="block rounded-2xl border border-dashed border-[color:var(--sand-300)] px-4 py-3 text-xs text-[color:var(--ink-600)] transition hover:border-[color:var(--sun-400)] hover:text-[color:var(--ink-900)]"
+                            >
+                              {hasTravelCoords ? (
+                                info ? (
+                                  <span>
+                                    Travel {info.distanceMiles.toFixed(1)} mi ·{' '}
+                                    {info.durationText} ·{' '}
+                                    {info.mode === 'walk'
+                                      ? info.note
+                                        ? 'Walk (no transit)'
+                                        : 'Walk'
+                                      : 'Transit'}
+                                  </span>
+                                ) : (
+                                  <span>Calculating travel time…</span>
+                                )
+                              ) : (
+                                <span>Add locations to see travel time.</span>
+                              )}
+                            </a>
+                          ) : null}
+                        </div>
+                      )
+                    }
 
                     return (
                       <div key={item.id} className="space-y-3">
-                        <div className="flex items-start justify-between gap-4 rounded-2xl border border-[color:var(--sand-300)] bg-white px-4 py-3">
-                          <div>
-                            <p
-                              className={`text-sm font-semibold ${
-                                item.done
-                                  ? 'text-[color:var(--ink-600)] line-through'
-                                  : 'text-[color:var(--ink-900)]'
-                              }`}
-                            >
-                              {item.title}
-                            </p>
-                            <p className="text-xs text-[color:var(--ink-600)]">
-                              {item.start_time
-                                ? formatTimeLabel(item.start_time)
-                                : 'Anytime'}{' '}
-                              · {item.type}
-                            </p>
-                            {item.notes ? (
-                              <p className="mt-2 text-xs text-[color:var(--ink-600)]">
-                                {item.notes}
+                        <div className="rounded-2xl border border-[color:var(--sand-300)] bg-white px-4 py-3">
+                          <div className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-start">
+                            <div>
+                              <p
+                                className={`text-sm font-semibold ${
+                                  item.done && !isTravel
+                                    ? 'text-[color:var(--ink-600)] line-through'
+                                    : 'text-[color:var(--ink-900)]'
+                                }`}
+                              >
+                                {item.title}
                               </p>
-                            ) : null}
+                              <p className="text-xs text-[color:var(--ink-600)]">
+                                {item.start_time
+                                  ? formatTimeLabel(item.start_time)
+                                  : 'Anytime'}{' '}
+                                · {item.type}
+                              </p>
+                              {item.notes ? (
+                                <p className="mt-2 text-xs text-[color:var(--ink-600)]">
+                                  {item.notes}
+                                </p>
+                              ) : null}
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => handleToggleDone(item)}
+                              className="focus-ring h-fit rounded-full border border-[color:var(--sand-300)] bg-white px-3 py-1.5 text-[10px] font-semibold text-[color:var(--ink-700)]"
+                            >
+                              {item.done ? 'Undo' : 'Done'}
+                            </button>
                           </div>
-                          <button
-                            type="button"
-                            onClick={() => handleToggleDone(item)}
-                            className="focus-ring rounded-full border border-[color:var(--sand-300)] px-3 py-1.5 text-xs font-semibold text-[color:var(--ink-700)]"
-                          >
-                            {item.done ? 'Undo' : 'Done'}
-                          </button>
+                          <div className="mt-3">
+                            <div className="grid w-full grid-cols-2 overflow-hidden rounded-full border border-[color:var(--sand-300)] bg-[color:var(--sand-100)] text-[10px] font-semibold text-[color:var(--ink-700)]">
+                              <button
+                                type="button"
+                                onClick={() => openEditForm(item)}
+                                className="focus-ring px-2.5 py-1.5"
+                              >
+                                Edit
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleDelete(item)}
+                                className="focus-ring border-l border-[color:var(--sand-300)] px-2.5 py-1.5 text-[color:var(--clay-600)]"
+                              >
+                                Delete
+                              </button>
+                            </div>
+                          </div>
                         </div>
-
-                        {next ? (
+                        {showAutoTravel ? (
                           <a
                             href={buildDirectionsUrl(
                               item,
                               next,
-                              info?.mode || 'walk'
+                              info?.mode || 'walk',
                             )}
                             target="_blank"
                             rel="noreferrer"
@@ -669,100 +1893,53 @@ function Itinerary() {
           <p className="mt-2 text-sm text-[color:var(--ink-600)]">
             Capture times, notes, and anything your group needs to remember.
           </p>
-          <div className="mt-6 space-y-4">
-            <label className="text-sm font-semibold text-[color:var(--ink-700)]">
-              Place search
-              <div className="relative mt-2">
-                <input
-                  value={placeQuery}
-                  onChange={(event) => setPlaceQuery(event.target.value)}
-                  className="w-full rounded-2xl border border-[color:var(--sand-300)] bg-white px-4 py-3 text-sm"
-                  placeholder="Search for a place"
-                />
-                {placeLoading ? (
-                  <div className="absolute right-3 top-3 text-xs text-[color:var(--ink-600)]">
-                    Searching...
-                  </div>
-                ) : null}
-              </div>
-              {placeError ? (
-                <p className="mt-2 text-xs text-[color:var(--clay-600)]">
-                  {placeError}
-                </p>
-              ) : null}
-              {placeSuggestions.length ? (
-                <div className="mt-2 overflow-hidden rounded-2xl border border-[color:var(--sand-300)] bg-white shadow">
-                  {placeSuggestions.map((prediction) => (
-                    <button
-                      key={prediction.place_id}
-                      type="button"
-                      onClick={() => handleSelectPlace(prediction)}
-                      className="flex w-full flex-col gap-1 px-4 py-3 text-left text-sm hover:bg-[color:var(--sand-100)]"
-                    >
-                      <span className="font-semibold text-[color:var(--ink-900)]">
-                        {prediction.structured_formatting?.main_text ||
-                          prediction.description}
-                      </span>
-                      <span className="text-xs text-[color:var(--ink-600)]">
-                        {prediction.structured_formatting?.secondary_text || ''}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              ) : null}
-            </label>
-            <label className="text-sm font-semibold text-[color:var(--ink-700)]">
-              Title
-              <input
-                value={title}
-                onChange={(event) => setTitle(event.target.value)}
-                className="mt-2 w-full rounded-2xl border border-[color:var(--sand-300)] bg-white px-4 py-3 text-sm"
-                placeholder="Tea ceremony"
-              />
-            </label>
-            <label className="text-sm font-semibold text-[color:var(--ink-700)]">
-              Type
-              <select
-                value={type}
-                onChange={(event) => setType(event.target.value)}
-                className="mt-2 w-full rounded-2xl border border-[color:var(--sand-300)] bg-white px-4 py-3 text-sm"
-              >
-                {itemTypes.map((value) => (
-                  <option key={value} value={value}>
-                    {value}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="text-sm font-semibold text-[color:var(--ink-700)]">
-              Start time
-              <input
-                type="datetime-local"
-                value={startTime}
-                onChange={(event) => setStartTime(event.target.value)}
-                className="mt-2 w-full rounded-2xl border border-[color:var(--sand-300)] bg-white px-4 py-3 text-sm"
-              />
-            </label>
-            <label className="text-sm font-semibold text-[color:var(--ink-700)]">
-              Notes
-              <textarea
-                value={notes}
-                onChange={(event) => setNotes(event.target.value)}
-                className="mt-2 h-28 w-full rounded-2xl border border-[color:var(--sand-300)] bg-white px-4 py-3 text-sm"
-                placeholder="Remember to book by Friday."
-              />
-            </label>
-            <button
-              type="button"
-              onClick={handleAdd}
-              disabled={loading}
-              className="focus-ring w-full rounded-2xl bg-[color:var(--sun-400)] px-5 py-3 text-sm font-semibold text-[color:var(--ink-900)]"
-            >
-              {loading ? 'Saving...' : 'Add item'}
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={openAddForm}
+            className="focus-ring mt-6 w-full rounded-2xl bg-[color:var(--sun-400)] px-5 py-3 text-sm font-semibold text-[color:var(--ink-900)]"
+          >
+            Add item
+          </button>
         </aside>
       </div>
+      <button
+        type="button"
+        onClick={openAddForm}
+        className="focus-ring fixed bottom-6 right-6 z-40 rounded-full bg-[color:var(--sun-400)] px-5 py-3 text-sm font-semibold text-[color:var(--ink-900)] shadow-lg"
+      >
+        Add item
+      </button>
+      {isFormOpen ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-[color:var(--ink-900)]/40 px-4 py-8"
+          role="dialog"
+          aria-modal="true"
+          aria-label={isEditMode ? 'Edit itinerary item' : 'Add itinerary item'}
+        >
+          <div className="w-full max-w-2xl rounded-3xl border border-[color:var(--sand-300)] bg-white p-6 shadow-xl">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <p className="text-xs uppercase tracking-[0.3em] text-[color:var(--ink-600)]">
+                  {trip.name}
+                </p>
+                <h2 className="font-display text-2xl text-[color:var(--ink-900)]">
+                  {isEditMode ? 'Edit item' : 'Add an item'}
+                </h2>
+              </div>
+              <button
+                type="button"
+                onClick={closeForm}
+                className="focus-ring rounded-full border border-[color:var(--sand-300)] px-3 py-1.5 text-xs font-semibold text-[color:var(--ink-700)]"
+              >
+                Close
+              </button>
+            </div>
+            <div className="mt-6 max-h-[70vh] overflow-y-auto pr-1">
+              {addForm}
+            </div>
+          </div>
+        </div>
+      ) : null}
     </main>
   )
 }

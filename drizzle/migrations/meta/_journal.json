@@ -8,6 +8,27 @@
       "when": 1761264000000,
       "tag": "0000_enable_rls",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "5",
+      "when": 1761267600000,
+      "tag": "0001_add_travel_fields",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1761267610000,
+      "tag": "0002_restore_rls",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "5",
+      "when": 1761270000000,
+      "tag": "0003_add_place_cache",
+      "breakpoints": true
     }
   ]
 }

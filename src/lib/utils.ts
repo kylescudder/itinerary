@@ -8,6 +8,15 @@ export function groupItemsByDate<T extends { start_time: string | null }>(items:
     return acc
   }, {})
 
+  Object.values(groups).forEach((group) => {
+    group.sort((a, b) => {
+      if (!a.start_time && !b.start_time) return 0
+      if (!a.start_time) return 1
+      if (!b.start_time) return -1
+      return new Date(a.start_time).getTime() - new Date(b.start_time).getTime()
+    })
+  })
+
   return Object.keys(groups)
     .sort((a, b) => {
       if (a === 'Anytime') return 1

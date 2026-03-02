@@ -45,6 +45,17 @@ export const itineraryItem = pgTable('itinerary_item', {
   notes: text('notes'),
   startTime: timestamp('start_time', { withTimezone: true }),
   done: boolean('done').notNull().default(false),
+  travelMode: text('travel_mode'),
+  fromPlaceName: text('from_place_name'),
+  fromPlaceId: text('from_place_id'),
+  fromLat: doublePrecision('from_lat'),
+  fromLng: doublePrecision('from_lng'),
+  toPlaceName: text('to_place_name'),
+  toPlaceId: text('to_place_id'),
+  toLat: doublePrecision('to_lat'),
+  toLng: doublePrecision('to_lng'),
+  fromDone: boolean('from_done'),
+  toDone: boolean('to_done'),
   lat: doublePrecision('lat'),
   lng: doublePrecision('lng'),
   placeName: text('place_name'),
@@ -73,3 +84,29 @@ export const placeSuggestion = pgTable('place_suggestion', {
     .notNull()
     .defaultNow(),
 })
+
+export const placeCache = pgTable(
+  'place_cache',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    tripId: uuid('trip_id')
+      .references(() => trip.id, { onDelete: 'cascade' })
+      .notNull(),
+    placeId: text('place_id').notNull(),
+    description: text('description').notNull(),
+    primaryText: text('primary_text'),
+    secondaryText: text('secondary_text'),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    uniquePlace: uniqueIndex('place_cache_trip_place').on(
+      table.tripId,
+      table.placeId
+    ),
+  })
+)

@@ -26,6 +26,15 @@ type PendingAction =
     }
   | {
       id: string
+      type: 'deleteItineraryItem'
+      payload: {
+        id: string
+        tripId: string
+      }
+      createdAt: string
+    }
+  | {
+      id: string
       type: 'createSuggestion'
       payload: CreateSuggestionPayload
       localId: string
@@ -161,6 +170,15 @@ export const replaceCachedItineraryItem = (
   })
 }
 
+export const removeCachedItineraryItem = (tripId: string, id: string) => {
+  const map = readItineraryCacheMap()
+  const current = map[tripId] || []
+  writeItineraryCacheMap({
+    ...map,
+    [tripId]: current.filter((entry) => entry.id !== id),
+  })
+}
+
 const readSuggestionCacheMap = () =>
   readJson<Record<string, PlaceSuggestion[]>>(
     STORAGE_KEYS.suggestionsByTrip,
@@ -215,6 +233,16 @@ export const enqueueAction = (action: PendingAction) => {
 export const removePendingAction = (id: string) => {
   const current = getPendingActions()
   savePendingActions(current.filter((action) => action.id !== id))
+}
+
+export const removePendingCreateItineraryItem = (localId: string) => {
+  const current = getPendingActions()
+  savePendingActions(
+    current.filter(
+      (action) =>
+        !(action.type === 'createItineraryItem' && action.localId === localId)
+    )
+  )
 }
 
 export type { PendingAction }

@@ -26,6 +26,17 @@ create table if not exists itinerary_item (
   notes text,
   start_time timestamptz,
   done boolean not null default false,
+  travel_mode text,
+  from_place_name text,
+  from_place_id text,
+  from_lat double precision,
+  from_lng double precision,
+  to_place_name text,
+  to_place_id text,
+  to_lat double precision,
+  to_lng double precision,
+  from_done boolean,
+  to_done boolean,
   lat double precision,
   lng double precision,
   place_name text,
@@ -45,6 +56,18 @@ create table if not exists place_suggestion (
   place_name text,
   place_id text,
   created_at timestamptz not null default now()
+);
+
+create table if not exists place_cache (
+  id uuid primary key default uuid_generate_v4(),
+  trip_id uuid references trip(id) on delete cascade,
+  place_id text not null,
+  description text not null,
+  primary_text text,
+  secondary_text text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique (trip_id, place_id)
 );
 
 create or replace function join_trip(invite_code text)
@@ -92,6 +115,7 @@ alter table trip enable row level security;
 alter table trip_members enable row level security;
 alter table itinerary_item enable row level security;
 alter table place_suggestion enable row level security;
+alter table place_cache enable row level security;
 
 drop policy if exists "trip members read" on trip;
 drop policy if exists "trip members write" on trip;
@@ -160,6 +184,24 @@ for all using (
   exists (
     select 1 from trip_members
     where trip_members.trip_id = place_suggestion.trip_id
+      and trip_members.user_id = auth.uid()
+  )
+);
+
+create policy "place cache read" on place_cache
+for select using (
+  exists (
+    select 1 from trip_members
+    where trip_members.trip_id = place_cache.trip_id
+      and trip_members.user_id = auth.uid()
+  )
+);
+
+create policy "place cache write" on place_cache
+for all using (
+  exists (
+    select 1 from trip_members
+    where trip_members.trip_id = place_cache.trip_id
       and trip_members.user_id = auth.uid()
   )
 );

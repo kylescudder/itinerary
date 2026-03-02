@@ -1,11 +1,13 @@
 import { supabase } from './supabase'
 import type {
   CreateItineraryItemPayload,
+  PlaceCache,
   CreateSuggestionPayload,
   ItineraryItem,
   PlaceSuggestion,
   Trip,
   UpdateItineraryItemPayload,
+  UpsertPlaceCachePayload,
 } from './types'
 import { generateTripCode } from './utils'
 import {
@@ -22,8 +24,10 @@ import {
   readCachedTripById,
   readCachedTrips,
   removePendingAction,
+  removePendingCreateItineraryItem,
   replaceCachedItineraryItem,
   replaceCachedSuggestion,
+  removeCachedItineraryItem,
   savePendingActions,
   setActiveTripId,
   updateCachedItineraryItem,
@@ -280,6 +284,48 @@ export async function updateItineraryItem(
   return data
 }
 
+export async function deleteItineraryItem(
+  id: string,
+  current?: ItineraryItem
+): Promise<void> {
+  if (isOffline()) {
+    if (!current) {
+      throw new Error('Unable to delete offline without cached data.')
+    }
+    const isLocal = id.startsWith('local-')
+    if (isLocal) {
+      removePendingCreateItineraryItem(id)
+      removeCachedItineraryItem(current.trip_id, id)
+      return
+    }
+    const createdAt = new Date().toISOString()
+    enqueueAction({
+      id: createClientId(),
+      type: 'deleteItineraryItem',
+      payload: { id, tripId: current.trip_id },
+      createdAt,
+    })
+    removeCachedItineraryItem(current.trip_id, id)
+    return
+  }
+
+  const { data, error } = await supabase
+    .from('itinerary_item')
+    .delete()
+    .eq('id', id)
+    .select('*')
+    .maybeSingle()
+
+  if (error) {
+    throw new Error(error.message)
+  }
+
+  const tripId = data?.trip_id || current?.trip_id
+  if (tripId) {
+    removeCachedItineraryItem(tripId, id)
+  }
+}
+
 export async function getSuggestions(tripId: string): Promise<PlaceSuggestion[]> {
   if (isOffline()) {
     const cached = readCachedSuggestions(tripId)
@@ -338,6 +384,40 @@ export async function createSuggestion(
   return data
 }
 
+export async function searchPlaceCache(
+  tripId: string,
+  query: string
+): Promise<PlaceCache[]> {
+  if (isOffline()) return []
+  const { data, error } = await supabase
+    .from('place_cache')
+    .select('*')
+    .eq('trip_id', tripId)
+    .ilike('description', `%${query}%`)
+    .order('updated_at', { ascending: false })
+    .limit(8)
+
+  if (error) {
+    throw new Error(error.message)
+  }
+
+  return data || []
+}
+
+export async function upsertPlaceCache(
+  entries: UpsertPlaceCachePayload[]
+): Promise<void> {
+  if (isOffline()) return
+  if (!entries.length) return
+  const { error } = await supabase
+    .from('place_cache')
+    .upsert(entries, { onConflict: 'trip_id,place_id' })
+
+  if (error) {
+    throw new Error(error.message)
+  }
+}
+
 export async function flushPendingActions() {
   if (isOffline()) {
     return { flushed: 0, remaining: getPendingActions().length }
@@ -379,6 +459,15 @@ export async function flushPendingActions() {
             data.updated_at
           )
         }
+      }
+
+      if (action.type === 'deleteItineraryItem') {
+        const { error } = await supabase
+          .from('itinerary_item')
+          .delete()
+          .eq('id', action.payload.id)
+        if (error) throw new Error(error.message)
+        removeCachedItineraryItem(action.payload.tripId, action.payload.id)
       }
 
       if (action.type === 'createSuggestion') {
