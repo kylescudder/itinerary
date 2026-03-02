@@ -533,6 +533,103 @@ body {
   gap: 24px;
 }
 
+.sample-day {
+  display: grid;
+  gap: 14px;
+  padding: 20px;
+  border-radius: 28px;
+  border: 1px solid rgba(206, 189, 198, 0.7);
+  background: linear-gradient(180deg, #e8e6ec 0%, #dedbe3 100%);
+  box-shadow: var(--shadow-card);
+}
+
+.sample-day-date {
+  font-size: 0.7rem;
+  letter-spacing: 0.4em;
+  text-transform: uppercase;
+  color: rgba(66, 62, 57, 0.7);
+}
+
+.sample-card {
+  display: grid;
+  gap: 12px;
+  border-radius: 24px;
+  border: 1px solid rgba(186, 163, 175, 0.7);
+  background: rgba(223, 226, 233, 0.92);
+  padding: 16px;
+}
+
+.sample-card-title {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: #2f2d2a;
+}
+
+.sample-card-meta {
+  font-size: 0.85rem;
+  color: rgba(63, 59, 55, 0.7);
+}
+
+.sample-card-note {
+  margin-top: 6px;
+  font-size: 0.85rem;
+  color: rgba(63, 59, 55, 0.8);
+}
+
+.sample-card-actions {
+  display: grid;
+  gap: 10px;
+}
+
+.sample-action-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+  border-radius: 999px;
+  border: 1px solid rgba(186, 163, 175, 0.8);
+  overflow: hidden;
+  background: rgba(220, 217, 227, 0.9);
+}
+
+.sample-action {
+  border: 1px solid rgba(186, 163, 175, 0.8);
+  border-radius: 999px;
+  padding: 10px 14px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: rgba(71, 67, 63, 0.9);
+  background: rgba(222, 222, 230, 0.9);
+}
+
+.sample-action.primary {
+  border-color: rgba(186, 163, 175, 0.9);
+  background: rgba(226, 229, 236, 0.95);
+}
+
+.sample-action-row .sample-action {
+  border: 0;
+  border-right: 1px solid rgba(186, 163, 175, 0.8);
+  border-radius: 0;
+  background: transparent;
+}
+
+.sample-action-row .sample-action:last-child {
+  border-right: 0;
+}
+
+.sample-action.danger {
+  color: rgba(143, 95, 106, 0.9);
+}
+
+.sample-travel-pill {
+  padding: 12px 16px;
+  border-radius: 999px;
+  border: 1px dashed rgba(186, 163, 175, 0.75);
+  color: rgba(67, 62, 58, 0.75);
+  background: rgba(224, 222, 230, 0.85);
+  font-size: 0.85rem;
+}
+
 @media (max-width: 899px) {
   .sample-grid {
     grid-template-columns: 1fr;

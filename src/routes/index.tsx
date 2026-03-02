@@ -216,59 +216,66 @@ function Home() {
               Everyone sees the same timeline, even when plans shift mid-trip.
             </p>
           </div>
-          <div className="space-y-3">
-            <div className="rounded-2xl border border-[color:var(--sand-300)] bg-white px-4 py-3">
-              <div className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-start">
-                <div>
-                  <p className="text-sm font-semibold text-[color:var(--ink-900)]">
-                    Sunrise market stroll
-                  </p>
-                  <p className="text-xs text-[color:var(--ink-600)]">
-                    7:30 AM · Gion
-                  </p>
-                  <p className="mt-2 text-xs text-[color:var(--ink-600)]">
-                    Meet at the shrine gate, grab breakfast on the way.
-                  </p>
+          <div className="sample-day">
+            <p className="sample-day-date">Tue, Mar 17</p>
+            <div className="sample-card">
+              <div className="sample-card-body">
+                <p className="sample-card-title">
+                  Narita International Airport
+                </p>
+                <p className="sample-card-meta">
+                  9:05 PM · travel · From · Car
+                </p>
+              </div>
+              <div className="sample-card-actions">
+                <button type="button" className="sample-action primary">
+                  Done
+                </button>
+                <div className="sample-action-row">
+                  <button type="button" className="sample-action">
+                    Edit
+                  </button>
+                  <button type="button" className="sample-action danger">
+                    Delete
+                  </button>
                 </div>
-                <span className="h-fit rounded-full border border-[color:var(--sand-300)] bg-white px-3 py-1.5 text-[10px] font-semibold text-[color:var(--ink-700)]">
-                  Activity
-                </span>
               </div>
             </div>
-            <div className="rounded-2xl border border-[color:var(--sand-300)] bg-white px-4 py-3">
-              <div className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-start">
-                <div>
-                  <p className="text-sm font-semibold text-[color:var(--ink-900)]">
-                    Tea ceremony
-                  </p>
-                  <p className="text-xs text-[color:var(--ink-600)]">
-                    11:00 AM · Kyoto
-                  </p>
-                  <p className="mt-2 text-xs text-[color:var(--ink-600)]">
-                    Reservations for 4, ticket confirmation in notes.
-                  </p>
-                </div>
-                <span className="h-fit rounded-full border border-[color:var(--sand-300)] bg-white px-3 py-1.5 text-[10px] font-semibold text-[color:var(--ink-700)]">
-                  Activity
-                </span>
+            <div className="sample-travel-pill">
+              Travel 44.9 mi · 1 hour 4 mins · Car
+            </div>
+            <div className="sample-card">
+              <div className="sample-card-body">
+                <p className="sample-card-title">Oku Station</p>
+                <p className="sample-card-meta">9:05 PM · travel · To · Car</p>
+              </div>
+              <div className="sample-card-actions">
+                <button type="button" className="sample-action primary">
+                  Done
+                </button>
               </div>
             </div>
-            <div className="rounded-2xl border border-[color:var(--sand-300)] bg-white px-4 py-3">
-              <div className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-start">
-                <div>
-                  <p className="text-sm font-semibold text-[color:var(--ink-900)]">
-                    Dinner at Pontocho
-                  </p>
-                  <p className="text-xs text-[color:var(--ink-600)]">
-                    7:00 PM · Reservations
-                  </p>
-                  <p className="mt-2 text-xs text-[color:var(--ink-600)]">
-                    Dress code smart casual. Ask for riverside table.
-                  </p>
+            <div className="sample-travel-pill">
+              Travel 0.4 mi · 8 mins · Walk
+            </div>
+            <div className="sample-card">
+              <div className="sample-card-body">
+                <p className="sample-card-title">Tsutsujigaoka Park</p>
+                <p className="sample-card-meta">10:30 PM · stay</p>
+                <p className="sample-card-note">Open 24 hours</p>
+              </div>
+              <div className="sample-card-actions">
+                <button type="button" className="sample-action primary">
+                  Done
+                </button>
+                <div className="sample-action-row">
+                  <button type="button" className="sample-action">
+                    Edit
+                  </button>
+                  <button type="button" className="sample-action danger">
+                    Delete
+                  </button>
                 </div>
-                <span className="h-fit rounded-full border border-[color:var(--sand-300)] bg-white px-3 py-1.5 text-[10px] font-semibold text-[color:var(--ink-700)]">
-                  Meal
-                </span>
               </div>
             </div>
           </div>
