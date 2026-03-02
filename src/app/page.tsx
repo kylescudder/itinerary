@@ -1,9 +1,9 @@
-import { createFileRoute, useNavigate } from '@tanstack/react-router'
+'use client'
+
+import { useRouter } from 'next/navigation'
 import { useEffect, useState, type CSSProperties } from 'react'
 import { useAuth } from '../lib/auth'
 import { useTrip } from '../hooks/useTrip'
-
-export const Route = createFileRoute('/')({ component: Home })
 
 const heroImages = [
   'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=2000&q=80',
@@ -18,8 +18,8 @@ const heroImages = [
   'https://images.unsplash.com/photo-1519681393784-d120267933ba?auto=format&fit=crop&w=2000&q=80',
 ]
 
-function Home() {
-  const navigate = useNavigate()
+export default function HomePage() {
+  const router = useRouter()
   const { session, loading: authLoading } = useAuth()
   const { trip, loading: tripLoading } = useTrip()
   const [heroImage, setHeroImage] = useState(heroImages[0])
@@ -29,11 +29,11 @@ function Home() {
     if (authLoading || tripLoading) return
     if (!session?.user) return
     if (trip) {
-      navigate({ to: '/itinerary' })
+      router.replace('/itinerary')
     } else {
-      navigate({ to: '/trip' })
+      router.replace('/trip')
     }
-  }, [authLoading, navigate, session?.user, trip, tripLoading])
+  }, [authLoading, router, session?.user, trip, tripLoading])
 
   useEffect(() => {
     const index = Math.floor(Math.random() * heroImages.length)
@@ -62,7 +62,7 @@ function Home() {
             </a>
             <button
               type="button"
-              onClick={() => navigate({ to: '/login' })}
+              onClick={() => router.push('/login')}
               className="focus-ring landing-nav-button"
             >
               Log in
@@ -196,7 +196,7 @@ function Home() {
           {session?.user ? (
             <button
               className="focus-ring hero-primary"
-              onClick={() => navigate({ to: trip ? '/itinerary' : '/trip' })}
+              onClick={() => router.push(trip ? '/itinerary' : '/trip')}
               type="button"
             >
               Go to your plan

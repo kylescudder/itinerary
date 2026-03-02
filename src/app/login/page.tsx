@@ -1,13 +1,14 @@
-import { createFileRoute, useNavigate } from '@tanstack/react-router'
+'use client'
+
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
-import { supabase } from '../lib/supabase'
-import { getAuthRedirectUrl } from '../lib/authRedirect'
-import { useAuth } from '../lib/auth'
+import { supabase } from '../../lib/supabase'
+import { getAuthRedirectUrl } from '../../lib/authRedirect'
+import { useAuth } from '../../lib/auth'
 
-export const Route = createFileRoute('/login')({ component: Login })
-
-function Login() {
-  const navigate = useNavigate()
+export default function LoginPage() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
   const { session, loading } = useAuth()
   const [error, setError] = useState<string | null>(null)
   const [working, setWorking] = useState(false)
@@ -16,15 +17,14 @@ function Login() {
   useEffect(() => {
     if (loading) return
     if (session?.user) {
-      navigate({ to: '/trip' })
+      router.replace('/trip')
     }
-  }, [loading, navigate, session?.user])
+  }, [loading, router, session?.user])
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search)
-    const code = params.get('code')
-    const errorParam = params.get('error')
-    const errorDescription = params.get('error_description')
+    const code = searchParams.get('code')
+    const errorParam = searchParams.get('error')
+    const errorDescription = searchParams.get('error_description')
     if (errorParam) {
       setError(
         errorDescription ? decodeURIComponent(errorDescription) : errorParam,
@@ -44,14 +44,14 @@ function Login() {
         return
       }
       if (data?.session?.user) {
-        navigate({ to: '/trip' })
+        router.replace('/trip')
         return
       }
       setWorking(false)
     }
 
     exchange()
-  }, [])
+  }, [router, searchParams])
 
   const handleGoogleSignIn = async () => {
     setError(null)

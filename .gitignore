@@ -1,36 +1,36 @@
-# Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
 # dependencies
-node_modules/
+/node_modules
+/.pnp
+.pnp.js
 
-# Build output
-dist/
-dist-ssr/
-.output/
+# testing
+/coverage
 
-# debug
-npm-debug.*
-yarn-debug.*
-yarn-error.*
+# next.js
+/.next/
+/out/
 
-# macOS
+# production
+/build
+
+# misc
 .DS_Store
 *.pem
 
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
 # local env files
-.env
 .env*.local
+.env
+
+# vercel
+.vercel
 
 # typescript
 *.tsbuildinfo
-
-# TanStack/Vite
-.tanstack/
-.vinxi/
-.nitro/
-.wrangler/
-__unconfig*
-todos.json
-
-# Local Netlify folder
-.netlify
+next-env.d.ts

@@ -8,9 +8,9 @@ export async function loadGoogleMaps() {
     return loaderPromise
   }
 
-  const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY
+  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
   if (!apiKey) {
-    throw new Error('Missing VITE_GOOGLE_MAPS_API_KEY')
+    throw new Error('Missing NEXT_PUBLIC_GOOGLE_MAPS_API_KEY')
   }
 
   setOptions({ key: apiKey, libraries: ['places', 'routes'] })

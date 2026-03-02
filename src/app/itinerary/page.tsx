@@ -1,4 +1,6 @@
-import { createFileRoute, useNavigate } from '@tanstack/react-router'
+'use client'
+
+import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { TouchEvent as ReactTouchEvent } from 'react'
 import {
@@ -8,20 +10,18 @@ import {
   searchPlaceCache,
   upsertPlaceCache,
   updateItineraryItem,
-} from '../lib/api'
-import { useAuth } from '../lib/auth'
-import { useTrip } from '../hooks/useTrip'
-import { useOfflineSync } from '../hooks/useOfflineSync'
-import type { ItineraryItem } from '../lib/types'
+} from '../../lib/api'
+import { useAuth } from '../../lib/auth'
+import { useTrip } from '../../hooks/useTrip'
+import { useOfflineSync } from '../../hooks/useOfflineSync'
+import type { ItineraryItem } from '../../lib/types'
 import {
   formatDateLabel,
   formatTripDateRange,
   formatTimeLabel,
   groupItemsByDate,
-} from '../lib/utils'
-import { loadGoogleMaps } from '../lib/googleMaps'
-
-export const Route = createFileRoute('/itinerary')({ component: Itinerary })
+} from '../../lib/utils'
+import { loadGoogleMaps } from '../../lib/googleMaps'
 
 const itemTypes = ['activity', 'meal', 'travel', 'stay', 'other']
 const travelModes = ['walk', 'car', 'transit'] as const
@@ -36,8 +36,8 @@ type PlaceOption = {
   }
 }
 
-function Itinerary() {
-  const navigate = useNavigate()
+export default function ItineraryPage() {
+  const router = useRouter()
   const { session, loading: authLoading } = useAuth()
   const { trip, trips, loading: tripLoading, setActiveTrip } = useTrip()
   const [items, setItems] = useState<ItineraryItem[]>([])
@@ -55,9 +55,9 @@ function Itinerary() {
   useEffect(() => {
     if (authLoading) return
     if (!isAuthed) {
-      navigate({ to: '/' })
+      router.replace('/')
     }
-  }, [authLoading, isAuthed, navigate])
+  }, [authLoading, isAuthed, router])
   const [startTime, setStartTime] = useState('')
   const [placeQuery, setPlaceQuery] = useState('')
   const [placeSuggestions, setPlaceSuggestions] = useState<PlaceOption[]>([])
@@ -1488,7 +1488,7 @@ function Itinerary() {
           </h1>
           <button
             type="button"
-            onClick={() => navigate({ to: '/trip' })}
+            onClick={() => router.push('/trip')}
             className="focus-ring mt-6 rounded-full bg-[color:var(--sun-400)] px-6 py-3 text-sm font-semibold text-[color:var(--ink-900)]"
           >
             Go to trip setup

@@ -1,56 +1,23 @@
-import { createFileRoute, useNavigate } from '@tanstack/react-router'
-import { useEffect, useState } from 'react'
-import { useAuth } from '../lib/auth'
-import {
-  createStripeCheckoutSession,
-  createStripePortalSession,
-} from '../lib/billing'
+'use client'
 
-export const Route = createFileRoute('/billing')({ component: Billing })
+import { useRouter } from 'next/navigation'
+import { useEffect } from 'react'
+import { useAuth } from '../../lib/auth'
 
-function Billing() {
-  const navigate = useNavigate()
+export default function BillingPage() {
+  const router = useRouter()
   const { session, loading: authLoading } = useAuth()
-  const [message, setMessage] = useState<string | null>(null)
-  const [portalLoading, setPortalLoading] = useState(false)
-  const [checkoutLoading, setCheckoutLoading] = useState(false)
   const user = session?.user
 
   useEffect(() => {
     if (authLoading) return
     if (!user) {
-      navigate({ to: '/' })
+      router.replace('/')
     }
-  }, [authLoading, navigate, user])
+  }, [authLoading, router, user])
 
-  const handlePortal = async () => {
-    setMessage(null)
-    setPortalLoading(true)
-    try {
-      const url = await createStripePortalSession()
-      window.location.assign(url)
-    } catch (err) {
-      setMessage(
-        err instanceof Error ? err.message : 'Unable to open Stripe portal.',
-      )
-    } finally {
-      setPortalLoading(false)
-    }
-  }
-
-  const handleCheckout = async () => {
-    setMessage(null)
-    setCheckoutLoading(true)
-    try {
-      const url = await createStripeCheckoutSession()
-      window.location.assign(url)
-    } catch (err) {
-      setMessage(
-        err instanceof Error ? err.message : 'Unable to start billing.',
-      )
-    } finally {
-      setCheckoutLoading(false)
-    }
+  const handleCheckout = () => {
+    router.push('/billing/checkout')
   }
 
   if (authLoading) {
@@ -87,43 +54,21 @@ function Billing() {
         <div className="billing-grid">
           <div className="billing-card">
             <p className="text-xs uppercase tracking-[0.3em] text-[color:var(--ink-600)]">
-              Payment method
+              Payment
             </p>
             <p className="mt-4 text-lg font-semibold text-[color:var(--ink-900)]">
-              Add or update a card
+              Pay for a new trip
             </p>
             <p className="mt-2 text-sm text-[color:var(--ink-600)]">
-              We charge a flat $5 per trip. No subscriptions, no surprise
-              renewals.
+              We charge a flat $5 per trip. Checkout is embedded so you never
+              leave the app.
             </p>
             <button
               type="button"
               onClick={handleCheckout}
-              disabled={checkoutLoading}
               className="focus-ring mt-5 rounded-full bg-[color:var(--sun-400)] px-6 py-3 text-sm font-semibold text-[color:var(--ink-900)]"
             >
-              {checkoutLoading ? 'Opening Stripe...' : 'Add payment method'}
-            </button>
-          </div>
-
-          <div className="billing-card">
-            <p className="text-xs uppercase tracking-[0.3em] text-[color:var(--ink-600)]">
-              Billing portal
-            </p>
-            <p className="mt-4 text-lg font-semibold text-[color:var(--ink-900)]">
-              Manage invoices and receipts
-            </p>
-            <p className="mt-2 text-sm text-[color:var(--ink-600)]">
-              Stripe hosts your invoices, tax info, and payment history in one
-              secure place.
-            </p>
-            <button
-              type="button"
-              onClick={handlePortal}
-              disabled={portalLoading}
-              className="focus-ring mt-5 rounded-full border border-[color:var(--sand-300)] px-6 py-3 text-sm font-semibold text-[color:var(--ink-700)]"
-            >
-              {portalLoading ? 'Opening portal...' : 'Open Stripe portal'}
+              Continue to checkout
             </button>
           </div>
         </div>
@@ -163,12 +108,6 @@ function Billing() {
             </p>
           </div>
         </div>
-
-        {message ? (
-          <p className="mt-6 rounded-2xl bg-[color:var(--sand-200)] px-4 py-3 text-sm text-[color:var(--clay-600)]">
-            {message}
-          </p>
-        ) : null}
       </section>
     </main>
   )

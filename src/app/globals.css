@@ -824,6 +824,14 @@ body {
   box-shadow: var(--shadow-card);
 }
 
+.embedded-checkout {
+  min-height: 560px;
+}
+
+.embedded-checkout iframe {
+  width: 100%;
+}
+
 .billing-summary {
   margin-top: 24px;
   display: grid;

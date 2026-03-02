@@ -1,3 +1,5 @@
+'use client'
+
 import { createContext, useContext, useEffect, useMemo, useState } from 'react'
 import type { AuthChangeEvent, Session } from '@supabase/supabase-js'
 import { supabase } from './supabase'
@@ -30,7 +32,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (!mounted) return
         setSession(next)
         setLoading(false)
-      }
+      },
     )
 
     return () => {
@@ -47,7 +49,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         await supabase.auth.signOut()
       },
     }),
-    [loading, session]
+    [loading, session],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

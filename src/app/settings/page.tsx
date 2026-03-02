@@ -1,16 +1,16 @@
-import { createFileRoute, useNavigate } from '@tanstack/react-router'
-import { useEffect, useState } from 'react'
-import { updateTripDetails } from '../lib/api'
-import { useAuth } from '../lib/auth'
-import { useTrip } from '../hooks/useTrip'
+'use client'
 
-export const Route = createFileRoute('/settings')({ component: Settings })
+import { useRouter } from 'next/navigation'
+import { useEffect, useState } from 'react'
+import { updateTripDetails } from '../../lib/api'
+import { useAuth } from '../../lib/auth'
+import { useTrip } from '../../hooks/useTrip'
 
 const normalizeDateValue = (value?: string | null) =>
   value ? value.split('T')[0] : ''
 
-function Settings() {
-  const navigate = useNavigate()
+export default function SettingsPage() {
+  const router = useRouter()
   const { session, loading: authLoading } = useAuth()
   const { trip, loading: tripLoading, refreshTrip } = useTrip()
   const [name, setName] = useState('')
@@ -23,9 +23,9 @@ function Settings() {
   useEffect(() => {
     if (authLoading) return
     if (!isAuthed) {
-      navigate({ to: '/' })
+      router.replace('/')
     }
-  }, [authLoading, isAuthed, navigate])
+  }, [authLoading, isAuthed, router])
 
   useEffect(() => {
     if (!trip) return
@@ -92,7 +92,7 @@ function Settings() {
           </h1>
           <button
             type="button"
-            onClick={() => navigate({ to: '/trip' })}
+            onClick={() => router.push('/trip')}
             className="focus-ring mt-6 rounded-full bg-[color:var(--sun-400)] px-6 py-3 text-sm font-semibold text-[color:var(--ink-900)]"
           >
             Go to trip setup

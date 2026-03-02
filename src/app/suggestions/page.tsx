@@ -1,17 +1,17 @@
-import { createFileRoute, useNavigate } from '@tanstack/react-router'
-import { useCallback, useEffect, useState } from 'react'
-import { createSuggestion, getSuggestions } from '../lib/api'
-import { useAuth } from '../lib/auth'
-import { useTrip } from '../hooks/useTrip'
-import { useOfflineSync } from '../hooks/useOfflineSync'
-import type { PlaceSuggestion } from '../lib/types'
+'use client'
 
-export const Route = createFileRoute('/suggestions')({ component: Suggestions })
+import { useRouter } from 'next/navigation'
+import { useCallback, useEffect, useState } from 'react'
+import { createSuggestion, getSuggestions } from '../../lib/api'
+import { useAuth } from '../../lib/auth'
+import { useTrip } from '../../hooks/useTrip'
+import { useOfflineSync } from '../../hooks/useOfflineSync'
+import type { PlaceSuggestion } from '../../lib/types'
 
 const suggestionTypes = ['food', 'stay', 'experience', 'sight', 'other']
 
-function Suggestions() {
-  const navigate = useNavigate()
+export default function SuggestionsPage() {
+  const router = useRouter()
   const { session, loading: authLoading } = useAuth()
   const { trip, trips, loading: tripLoading, setActiveTrip } = useTrip()
   const [items, setItems] = useState<PlaceSuggestion[]>([])
@@ -25,9 +25,9 @@ function Suggestions() {
   useEffect(() => {
     if (authLoading) return
     if (!isAuthed) {
-      navigate({ to: '/' })
+      router.replace('/')
     }
-  }, [authLoading, isAuthed, navigate])
+  }, [authLoading, isAuthed, router])
 
   const loadSuggestions = useCallback(async () => {
     if (!trip) return
@@ -37,7 +37,9 @@ function Suggestions() {
       const data = await getSuggestions(trip.id)
       setItems(data)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unable to load suggestions.')
+      setError(
+        err instanceof Error ? err.message : 'Unable to load suggestions.',
+      )
     } finally {
       setLoading(false)
     }
@@ -89,7 +91,9 @@ function Suggestions() {
     return (
       <main className="page-shell">
         <div className="section-shell mx-auto max-w-5xl px-8 py-12">
-          <p className="text-sm text-[color:var(--ink-600)]">Loading suggestions...</p>
+          <p className="text-sm text-[color:var(--ink-600)]">
+            Loading suggestions...
+          </p>
         </div>
       </main>
     )
@@ -108,7 +112,7 @@ function Suggestions() {
           </h1>
           <button
             type="button"
-            onClick={() => navigate({ to: '/trip' })}
+            onClick={() => router.push('/trip')}
             className="focus-ring mt-6 rounded-full bg-[color:var(--sun-400)] px-6 py-3 text-sm font-semibold text-[color:var(--ink-900)]"
           >
             Go to trip setup
@@ -176,7 +180,8 @@ function Suggestions() {
           ) : (
             <div className="section-shell px-8 py-8">
               <p className="text-sm text-[color:var(--ink-600)]">
-                No suggestions yet. Add the first one from the form on the right.
+                No suggestions yet. Add the first one from the form on the
+                right.
               </p>
             </div>
           )}

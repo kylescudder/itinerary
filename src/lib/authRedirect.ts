@@ -1,4 +1,4 @@
-const envSiteUrl = import.meta.env.VITE_SITE_URL || ''
+const envSiteUrl = process.env.NEXT_PUBLIC_SITE_URL || ''
 
 function getFallbackOrigin() {
   if (typeof window === 'undefined') return ''

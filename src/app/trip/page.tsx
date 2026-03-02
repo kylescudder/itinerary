@@ -1,13 +1,13 @@
-import { createFileRoute, useNavigate } from '@tanstack/react-router'
+'use client'
+
+import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
-import { createTrip, joinTrip } from '../lib/api'
-import { useAuth } from '../lib/auth'
-import { useTrip } from '../hooks/useTrip'
+import { createTrip, joinTrip } from '../../lib/api'
+import { useAuth } from '../../lib/auth'
+import { useTrip } from '../../hooks/useTrip'
 
-export const Route = createFileRoute('/trip')({ component: TripSetup })
-
-function TripSetup() {
-  const navigate = useNavigate()
+export default function TripPage() {
+  const router = useRouter()
   const { session, loading: authLoading } = useAuth()
   const {
     trip,
@@ -24,13 +24,14 @@ function TripSetup() {
   const [error, setError] = useState<string | null>(null)
   const [working, setWorking] = useState(false)
   const isAuthed = !!session?.user
+  const hasLifetimeAccess = !!session?.user?.user_metadata?.lifetime_access
 
   useEffect(() => {
     if (authLoading) return
     if (!isAuthed) {
-      navigate({ to: '/' })
+      router.replace('/')
     }
-  }, [authLoading, isAuthed, navigate])
+  }, [authLoading, isAuthed, router])
 
   const handleCreate = async () => {
     if (!name.trim()) {
@@ -49,7 +50,11 @@ function TripSetup() {
         endDate: endDate || null,
       })
       await refreshTrip()
-      navigate({ to: '/itinerary' })
+      if (!hasLifetimeAccess) {
+        router.push('/billing/checkout')
+        return
+      }
+      router.push('/itinerary')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unable to create trip.')
     } finally {
@@ -67,7 +72,11 @@ function TripSetup() {
     try {
       await joinTrip(code.trim().toUpperCase())
       await refreshTrip()
-      navigate({ to: '/itinerary' })
+      if (!hasLifetimeAccess) {
+        router.push('/billing/checkout')
+        return
+      }
+      router.push('/itinerary')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unable to join trip.')
     } finally {
@@ -123,7 +132,7 @@ function TripSetup() {
                       type="button"
                       onClick={() => {
                         setActiveTrip(entry.id)
-                        navigate({ to: '/itinerary' })
+                        router.push('/itinerary')
                       }}
                       className="focus-ring rounded-full border border-[color:var(--sand-300)] px-4 py-2 text-xs font-semibold text-[color:var(--ink-700)]"
                     >

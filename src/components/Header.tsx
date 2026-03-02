@@ -1,6 +1,9 @@
-import { Link, useRouterState } from '@tanstack/react-router'
-import { useAuth } from '../lib/auth'
+'use client'
+
+import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
+import { useAuth } from '../lib/auth'
 
 const navItems = [
   { to: '/trip', label: 'Trip' },
@@ -21,7 +24,7 @@ function getInitials(name: string) {
 
 export default function Header() {
   const { session, signOut } = useAuth()
-  const location = useRouterState({ select: (state) => state.location })
+  const pathname = usePathname()
   const [isOpen, setIsOpen] = useState(false)
   const [avatarOk, setAvatarOk] = useState(false)
   const [avatarFailed, setAvatarFailed] = useState(false)
@@ -108,9 +111,9 @@ export default function Header() {
           {navItems.map((item) => (
             <Link
               key={item.to}
-              to={item.to}
+              href={item.to}
               className={
-                location.pathname === item.to
+                pathname === item.to
                   ? 'sidebar-link sidebar-link-active'
                   : 'sidebar-link'
               }
@@ -121,7 +124,7 @@ export default function Header() {
           ))}
           {!user ? (
             <Link
-              to="/login"
+              href="/login"
               className="sidebar-link sidebar-link-cta"
               onClick={() => setIsOpen(false)}
             >

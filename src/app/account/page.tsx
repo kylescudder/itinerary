@@ -1,12 +1,12 @@
-import { createFileRoute, useNavigate } from '@tanstack/react-router'
+'use client'
+
+import { useRouter } from 'next/navigation'
 import { useEffect } from 'react'
-import { useAuth } from '../lib/auth'
-import { useTrip } from '../hooks/useTrip'
+import { useAuth } from '../../lib/auth'
+import { useTrip } from '../../hooks/useTrip'
 
-export const Route = createFileRoute('/account')({ component: Account })
-
-function Account() {
-  const navigate = useNavigate()
+export default function AccountPage() {
+  const router = useRouter()
   const { session, loading: authLoading, signOut } = useAuth()
   const { trip, loading: tripLoading } = useTrip()
   const user = session?.user
@@ -19,9 +19,9 @@ function Account() {
   useEffect(() => {
     if (authLoading) return
     if (!user) {
-      navigate({ to: '/' })
+      router.replace('/')
     }
-  }, [authLoading, navigate, user])
+  }, [authLoading, router, user])
 
   if (authLoading || tripLoading) {
     return (
@@ -85,7 +85,7 @@ function Account() {
             <button
               type="button"
               className="focus-ring rounded-full bg-[color:var(--sun-400)] px-6 py-3 text-sm font-semibold text-[color:var(--ink-900)]"
-              onClick={() => navigate({ to: '/billing' })}
+              onClick={() => router.push('/billing')}
             >
               Go to billing
             </button>
