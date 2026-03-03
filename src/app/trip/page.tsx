@@ -25,6 +25,7 @@ export default function TripPage() {
   const [working, setWorking] = useState(false)
   const isAuthed = !!session?.user
   const hasLifetimeAccess = !!session?.user?.user_metadata?.lifetime_access
+  const pendingTripKey = 'itinerary:pending-trip'
 
   useEffect(() => {
     if (authLoading) return
@@ -42,6 +43,20 @@ export default function TripPage() {
       setError('End date must be after the start date.')
       return
     }
+    if (!hasLifetimeAccess) {
+      if (typeof window !== 'undefined') {
+        window.localStorage.setItem(
+          pendingTripKey,
+          JSON.stringify({
+            name: name.trim(),
+            startDate: startDate || null,
+            endDate: endDate || null,
+          }),
+        )
+      }
+      router.push('/billing/checkout')
+      return
+    }
     setWorking(true)
     setError(null)
     try {
@@ -50,10 +65,6 @@ export default function TripPage() {
         endDate: endDate || null,
       })
       await refreshTrip()
-      if (!hasLifetimeAccess) {
-        router.push('/billing/checkout')
-        return
-      }
       router.push('/itinerary')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unable to create trip.')

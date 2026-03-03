@@ -1,8 +1,9 @@
 'use client'
 
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { fetchStripeSessionStatus } from '../../../lib/billing'
+import { createTrip } from '../../../lib/api'
 import { useAuth } from '../../../lib/auth'
 
 export default function BillingReturnPage() {
@@ -12,7 +13,11 @@ export default function BillingReturnPage() {
   const [status, setStatus] = useState<string | null>(null)
   const [email, setEmail] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [createError, setCreateError] = useState<string | null>(null)
+  const [creating, setCreating] = useState(false)
+  const createTriggered = useRef(false)
   const user = session?.user
+  const pendingTripKey = 'itinerary:pending-trip'
 
   useEffect(() => {
     if (authLoading) return
@@ -38,6 +43,52 @@ export default function BillingReturnPage() {
         setError(err instanceof Error ? err.message : 'Unable to load status.')
       })
   }, [searchParams])
+
+  useEffect(() => {
+    if (status !== 'complete' || !user || createTriggered.current) return
+    if (typeof window === 'undefined') return
+    const stored = window.localStorage.getItem(pendingTripKey)
+    if (!stored) return
+
+    let payload: {
+      name: string
+      startDate: string | null
+      endDate: string | null
+    } | null = null
+
+    try {
+      payload = JSON.parse(stored)
+    } catch {
+      window.localStorage.removeItem(pendingTripKey)
+      return
+    }
+
+    if (!payload?.name) {
+      window.localStorage.removeItem(pendingTripKey)
+      return
+    }
+
+    createTriggered.current = true
+    setCreating(true)
+    setCreateError(null)
+    createTrip(payload.name, {
+      startDate: payload.startDate,
+      endDate: payload.endDate,
+    })
+      .then(() => {
+        window.localStorage.removeItem(pendingTripKey)
+        router.push('/itinerary')
+      })
+      .catch((err) => {
+        createTriggered.current = false
+        setCreateError(
+          err instanceof Error ? err.message : 'Unable to create trip.',
+        )
+      })
+      .finally(() => {
+        setCreating(false)
+      })
+  }, [status, user, router])
 
   if (authLoading) {
     return (
@@ -89,6 +140,16 @@ export default function BillingReturnPage() {
               <p className="mt-2 text-sm text-[color:var(--ink-600)]">
                 A receipt will be sent to {email ?? 'your email'}.
               </p>
+              {creating ? (
+                <p className="mt-4 text-sm text-[color:var(--ink-600)]">
+                  Creating your trip...
+                </p>
+              ) : null}
+              {createError ? (
+                <p className="mt-4 text-sm text-[color:var(--clay-600)]">
+                  {createError}
+                </p>
+              ) : null}
             </>
           ) : null}
 

@@ -24,8 +24,7 @@ async function readStripeJson<T>(response: Response): Promise<T> {
   return (await response.json()) as T
 }
 
-const apiUrl = process.env.NEXT_PUBLIC_API_URL?.trim()
-const stripeBaseUrl = apiUrl ? `${apiUrl}/stripe` : '/api/stripe'
+const stripeBaseUrl = '/api/stripe'
 
 export async function createStripeCheckoutSession(options?: {
   email?: string | null

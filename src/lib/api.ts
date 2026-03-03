@@ -9,7 +9,6 @@ import type {
   UpdateItineraryItemPayload,
   UpsertPlaceCachePayload,
 } from './types'
-import { generateTripCode } from './utils'
 import {
   addCachedItineraryItem,
   addCachedSuggestion,
@@ -35,12 +34,51 @@ import {
   upsertCachedTrip,
 } from './offline'
 
-async function requireUserId() {
-  const { data, error } = await supabase.auth.getUser()
-  if (error || !data.user) {
+const apiBaseUrl = '/api'
+
+async function getAccessToken() {
+  const { data, error } = await supabase.auth.getSession()
+  if (error || !data.session?.access_token) {
     throw new Error('Please sign in to continue.')
   }
-  return data.user.id
+  return data.session.access_token
+}
+
+async function readApiJson<T>(response: Response): Promise<T> {
+  const contentType = response.headers.get('content-type') || ''
+  const expectsJson = contentType.includes('application/json')
+
+  if (!expectsJson) {
+    const message = await response.text()
+    throw new Error(message || 'Request failed.')
+  }
+
+  const payload = (await response.json()) as T & { error?: string }
+
+  if (!response.ok) {
+    throw new Error(payload.error || 'Request failed.')
+  }
+
+  return payload
+}
+
+async function apiFetch<T>(
+  path: string,
+  options: RequestInit = {},
+): Promise<T> {
+  const token = await getAccessToken()
+  const headers = new Headers(options.headers)
+  headers.set('Authorization', `Bearer ${token}`)
+  if (options.body && !headers.has('Content-Type')) {
+    headers.set('Content-Type', 'application/json')
+  }
+
+  const response = await fetch(`${apiBaseUrl}${path}`, {
+    ...options,
+    headers,
+  })
+
+  return readApiJson<T>(response)
 }
 
 const createClientId = () => {
@@ -61,17 +99,15 @@ export async function getTrips(): Promise<Trip[]> {
     const cached = readCachedTrips()
     if (cached.length) return cached
   }
-  const { data, error } = await supabase
-    .from('trip')
-    .select('*')
-    .order('created_at', { ascending: false })
-  if (error) {
+  let trips: Trip[] = []
+  try {
+    trips = await apiFetch<Trip[]>('/trips')
+  } catch (error) {
     if (isOffline()) {
       return readCachedTrips()
     }
-    throw new Error(error.message)
+    throw error
   }
-  const trips = data || []
   cacheTrips(trips)
   return trips
 }
@@ -105,73 +141,24 @@ export async function createTrip(
     endDate?: string | null
   },
 ): Promise<Trip> {
-  const userId = await requireUserId()
-  let created: Trip | null = null
-  let lastError: string | null = null
-
-  for (let attempt = 0; attempt < 5; attempt += 1) {
-    const id = crypto.randomUUID()
-    const code = generateTripCode()
-    const { error } = await supabase.from('trip').insert({
-      id,
+  const created = await apiFetch<Trip>('/trips', {
+    method: 'POST',
+    body: JSON.stringify({
       name,
-      code,
       start_date: options?.startDate ?? null,
       end_date: options?.endDate ?? null,
-    })
-
-    if (error) {
-      lastError = error.message
-      continue
-    }
-
-    const { error: memberError } = await supabase
-      .from('trip_members')
-      .insert({ trip_id: id, user_id: userId, role: 'owner' })
-
-    if (memberError) {
-      lastError = memberError.message
-      continue
-    }
-
-    const { data: trip, error: fetchError } = await supabase
-      .from('trip')
-      .select('*')
-      .eq('id', id)
-      .maybeSingle()
-
-    if (fetchError) {
-      lastError = fetchError.message
-      continue
-    }
-
-    if (trip) {
-      created = trip
-      break
-    }
-  }
-
-  if (!created) {
-    throw new Error(lastError || 'Unable to create trip.')
-  }
+    }),
+  })
   setActiveTripId(created.id)
   upsertCachedTrip(created)
   return created
 }
 
 export async function joinTrip(code: string): Promise<Trip> {
-  await requireUserId()
-  const { data: trip, error } = await supabase.rpc('join_trip', {
-    invite_code: code,
+  const trip = await apiFetch<Trip>('/trips/join', {
+    method: 'POST',
+    body: JSON.stringify({ code }),
   })
-
-  if (error) {
-    throw new Error(error.message)
-  }
-
-  if (!trip) {
-    throw new Error('Trip not found.')
-  }
   setActiveTripId(trip.id)
   upsertCachedTrip(trip)
   return trip
@@ -185,32 +172,10 @@ export async function updateTripDetails(
     end_date?: string | null
   },
 ): Promise<Trip> {
-  const payload: Record<string, string | null> = {}
-
-  if (updates.name !== undefined) payload.name = updates.name
-  if (updates.start_date !== undefined) payload.start_date = updates.start_date
-  if (updates.end_date !== undefined) payload.end_date = updates.end_date
-
-  if (!Object.keys(payload).length) {
-    throw new Error('No updates provided.')
-  }
-
-  const { data, error } = await supabase
-    .from('trip')
-    .update(payload)
-    .eq('id', id)
-    .select('*')
-    .maybeSingle()
-
-  if (error) {
-    throw new Error(error.message)
-  }
-
-  if (!data) {
-    throw new Error('Trip not found.')
-  }
-
-  return data
+  return apiFetch<Trip>(`/trips/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ updates }),
+  })
 }
 
 export async function getItineraryItems(
@@ -220,20 +185,15 @@ export async function getItineraryItems(
     const cached = readCachedItineraryItems(tripId)
     if (cached.length) return cached
   }
-  const { data, error } = await supabase
-    .from('itinerary_item')
-    .select('*')
-    .eq('trip_id', tripId)
-    .order('start_time', { ascending: true, nullsFirst: false })
-
-  if (error) {
+  let items: ItineraryItem[] = []
+  try {
+    items = await apiFetch<ItineraryItem[]>(`/trips/${tripId}/itinerary-items`)
+  } catch (error) {
     if (isOffline()) {
       return readCachedItineraryItems(tripId)
     }
-    throw new Error(error.message)
+    throw error
   }
-
-  const items = data || []
   cacheItineraryItems(tripId, items)
   return items
 }
@@ -260,18 +220,16 @@ export async function createItineraryItem(
     addCachedItineraryItem(payload.trip_id, localItem)
     return localItem
   }
-  const { data, error } = await supabase
-    .from('itinerary_item')
-    .insert(payload)
-    .select('*')
-    .single()
+  const created = await apiFetch<ItineraryItem>(
+    `/trips/${payload.trip_id}/itinerary-items`,
+    {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    },
+  )
 
-  if (error) {
-    throw new Error(error.message)
-  }
-
-  addCachedItineraryItem(payload.trip_id, data)
-  return data
+  addCachedItineraryItem(payload.trip_id, created)
+  return created
 }
 
 export async function updateItineraryItem(
@@ -294,23 +252,13 @@ export async function updateItineraryItem(
     updateCachedItineraryItem(current.trip_id, id, updates, updatedAt)
     return updated
   }
-  const { data, error } = await supabase
-    .from('itinerary_item')
-    .update(updates)
-    .eq('id', id)
-    .select('*')
-    .maybeSingle()
+  const updated = await apiFetch<ItineraryItem>(`/itinerary-items/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ updates }),
+  })
 
-  if (error) {
-    throw new Error(error.message)
-  }
-
-  if (!data) {
-    throw new Error('Itinerary item not found.')
-  }
-
-  updateCachedItineraryItem(data.trip_id, id, updates, data.updated_at)
-  return data
+  updateCachedItineraryItem(updated.trip_id, id, updates, updated.updated_at)
+  return updated
 }
 
 export async function deleteItineraryItem(
@@ -338,18 +286,14 @@ export async function deleteItineraryItem(
     return
   }
 
-  const { data, error } = await supabase
-    .from('itinerary_item')
-    .delete()
-    .eq('id', id)
-    .select('*')
-    .maybeSingle()
+  const response = await apiFetch<{ tripId: string | null }>(
+    `/itinerary-items/${id}`,
+    {
+      method: 'DELETE',
+    },
+  )
 
-  if (error) {
-    throw new Error(error.message)
-  }
-
-  const tripId = data?.trip_id || current?.trip_id
+  const tripId = response.tripId || current?.trip_id
   if (tripId) {
     removeCachedItineraryItem(tripId, id)
   }
@@ -362,20 +306,15 @@ export async function getSuggestions(
     const cached = readCachedSuggestions(tripId)
     if (cached.length) return cached
   }
-  const { data, error } = await supabase
-    .from('place_suggestion')
-    .select('*')
-    .eq('trip_id', tripId)
-    .order('created_at', { ascending: false })
-
-  if (error) {
+  let items: PlaceSuggestion[] = []
+  try {
+    items = await apiFetch<PlaceSuggestion[]>(`/trips/${tripId}/suggestions`)
+  } catch (error) {
     if (isOffline()) {
       return readCachedSuggestions(tripId)
     }
-    throw new Error(error.message)
+    throw error
   }
-
-  const items = data || []
   cacheSuggestions(tripId, items)
   return items
 }
@@ -401,18 +340,16 @@ export async function createSuggestion(
     addCachedSuggestion(payload.trip_id, localItem)
     return localItem
   }
-  const { data, error } = await supabase
-    .from('place_suggestion')
-    .insert(payload)
-    .select('*')
-    .single()
+  const created = await apiFetch<PlaceSuggestion>(
+    `/trips/${payload.trip_id}/suggestions`,
+    {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    },
+  )
 
-  if (error) {
-    throw new Error(error.message)
-  }
-
-  addCachedSuggestion(payload.trip_id, data)
-  return data
+  addCachedSuggestion(payload.trip_id, created)
+  return created
 }
 
 export async function searchPlaceCache(
@@ -420,19 +357,9 @@ export async function searchPlaceCache(
   query: string,
 ): Promise<PlaceCache[]> {
   if (isOffline()) return []
-  const { data, error } = await supabase
-    .from('place_cache')
-    .select('*')
-    .eq('trip_id', tripId)
-    .ilike('description', `%${query}%`)
-    .order('updated_at', { ascending: false })
-    .limit(8)
-
-  if (error) {
-    throw new Error(error.message)
-  }
-
-  return data || []
+  return apiFetch<PlaceCache[]>(
+    `/trips/${tripId}/place-cache?query=${encodeURIComponent(query)}`,
+  )
 }
 
 export async function upsertPlaceCache(
@@ -440,13 +367,10 @@ export async function upsertPlaceCache(
 ): Promise<void> {
   if (isOffline()) return
   if (!entries.length) return
-  const { error } = await supabase
-    .from('place_cache')
-    .upsert(entries, { onConflict: 'trip_id,place_id' })
-
-  if (error) {
-    throw new Error(error.message)
-  }
+  await apiFetch<{ ok: true }>(`/trips/${entries[0].trip_id}/place-cache`, {
+    method: 'POST',
+    body: JSON.stringify({ entries }),
+  })
 }
 
 export async function flushPendingActions() {
@@ -465,50 +389,55 @@ export async function flushPendingActions() {
     const action = pending[i]
     try {
       if (action.type === 'createItineraryItem') {
-        const { data, error } = await supabase
-          .from('itinerary_item')
-          .insert(action.payload)
-          .select('*')
-          .single()
-        if (error) throw new Error(error.message)
-        replaceCachedItineraryItem(action.payload.trip_id, action.localId, data)
+        const created = await apiFetch<ItineraryItem>(
+          `/trips/${action.payload.trip_id}/itinerary-items`,
+          {
+            method: 'POST',
+            body: JSON.stringify(action.payload),
+          },
+        )
+        replaceCachedItineraryItem(
+          action.payload.trip_id,
+          action.localId,
+          created,
+        )
       }
 
       if (action.type === 'updateItineraryItem') {
-        const { data, error } = await supabase
-          .from('itinerary_item')
-          .update(action.payload.updates)
-          .eq('id', action.payload.id)
-          .select('*')
-          .maybeSingle()
-        if (error) throw new Error(error.message)
-        if (data) {
-          updateCachedItineraryItem(
-            data.trip_id,
-            action.payload.id,
-            action.payload.updates,
-            data.updated_at,
-          )
-        }
+        const updated = await apiFetch<ItineraryItem>(
+          `/itinerary-items/${action.payload.id}`,
+          {
+            method: 'PATCH',
+            body: JSON.stringify({ updates: action.payload.updates }),
+          },
+        )
+        updateCachedItineraryItem(
+          updated.trip_id,
+          action.payload.id,
+          action.payload.updates,
+          updated.updated_at,
+        )
       }
 
       if (action.type === 'deleteItineraryItem') {
-        const { error } = await supabase
-          .from('itinerary_item')
-          .delete()
-          .eq('id', action.payload.id)
-        if (error) throw new Error(error.message)
+        await apiFetch<{ tripId: string | null }>(
+          `/itinerary-items/${action.payload.id}`,
+          {
+            method: 'DELETE',
+          },
+        )
         removeCachedItineraryItem(action.payload.tripId, action.payload.id)
       }
 
       if (action.type === 'createSuggestion') {
-        const { data, error } = await supabase
-          .from('place_suggestion')
-          .insert(action.payload)
-          .select('*')
-          .single()
-        if (error) throw new Error(error.message)
-        replaceCachedSuggestion(action.payload.trip_id, action.localId, data)
+        const created = await apiFetch<PlaceSuggestion>(
+          `/trips/${action.payload.trip_id}/suggestions`,
+          {
+            method: 'POST',
+            body: JSON.stringify(action.payload),
+          },
+        )
+        replaceCachedSuggestion(action.payload.trip_id, action.localId, created)
       }
 
       removePendingAction(action.id)

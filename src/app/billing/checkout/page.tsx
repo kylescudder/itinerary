@@ -46,7 +46,7 @@ export default function BillingCheckoutPage() {
   if (authLoading) {
     return (
       <main className="min-h-screen px-[clamp(20px,5vw,64px)] pt-8 pb-[60px]">
-        <div className="mx-auto max-w-4xl rounded-[24px] border border-[rgba(234,203,213,0.7)] bg-[linear-gradient(135deg,rgba(248,237,240,0.9),rgba(254,249,250,0.95))] px-8 py-12 shadow-[var(--shadow-soft)]">
+        <div className="mx-auto max-w-4xl rounded-[20px] border border-[rgba(234,203,213,0.55)] bg-[rgba(254,249,250,0.9)] px-8 py-12 shadow-[var(--shadow-soft)]">
           <p className="text-sm text-[color:var(--ink-600)]">
             Loading checkout...
           </p>
@@ -62,14 +62,12 @@ export default function BillingCheckoutPage() {
   if (!stripePromise) {
     return (
       <main className="min-h-screen px-[clamp(20px,5vw,64px)] pt-8 pb-[60px]">
-        <section className="mx-auto max-w-4xl rounded-[24px] border border-[rgba(234,203,213,0.7)] bg-[linear-gradient(135deg,rgba(248,237,240,0.9),rgba(254,249,250,0.95))] px-8 py-12 shadow-[var(--shadow-soft)]">
-          <div className="relative grid gap-[14px] rounded-[24px] border border-[rgba(234,203,213,0.7)] bg-[rgba(254,249,250,0.92)] p-[22px] shadow-[var(--shadow-card)]">
-            <p className="text-sm text-[color:var(--clay-600)]">
-              Missing Stripe publishable key. Add
-              `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` to your `.env` to enable
-              checkout.
-            </p>
-          </div>
+        <section className="mx-auto max-w-4xl rounded-[20px] border border-[rgba(234,203,213,0.55)] bg-[rgba(254,249,250,0.9)] px-8 py-12 shadow-[var(--shadow-soft)]">
+          <p className="text-sm text-[color:var(--clay-600)]">
+            Missing Stripe publishable key. Add
+            `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` to your `.env` to enable
+            checkout.
+          </p>
         </section>
       </main>
     )
@@ -77,7 +75,7 @@ export default function BillingCheckoutPage() {
 
   return (
     <main className="min-h-screen px-[clamp(20px,5vw,64px)] pt-8 pb-[60px]">
-      <section className="mx-auto max-w-4xl rounded-[24px] border border-[rgba(234,203,213,0.7)] bg-[linear-gradient(135deg,rgba(248,237,240,0.9),rgba(254,249,250,0.95))] px-8 py-12 shadow-[var(--shadow-soft)]">
+      <section className="mx-auto max-w-4xl overflow-hidden rounded-[20px] border border-[rgba(234,203,213,0.55)] bg-[rgba(254,249,250,0.9)] px-8 py-12 shadow-[var(--shadow-soft)]">
         <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
           <div>
             <p className="text-xs uppercase tracking-[0.35em] text-[color:var(--ink-600)]">
@@ -89,12 +87,10 @@ export default function BillingCheckoutPage() {
           </div>
         </div>
 
-        <div className="relative grid gap-[14px] rounded-[24px] border border-[rgba(234,203,213,0.7)] bg-[rgba(254,249,250,0.92)] p-[22px] shadow-[var(--shadow-card)]">
-          <div className="min-h-[560px] [&_iframe]:w-full">
-            <EmbeddedCheckoutProvider stripe={stripePromise} options={options}>
-              <EmbeddedCheckout />
-            </EmbeddedCheckoutProvider>
-          </div>
+        <div className="-mx-8 min-h-[560px] w-[calc(100%+4rem)] [&_iframe]:w-full">
+          <EmbeddedCheckoutProvider stripe={stripePromise} options={options}>
+            <EmbeddedCheckout />
+          </EmbeddedCheckoutProvider>
         </div>
 
         {error ? (
