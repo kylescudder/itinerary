@@ -1,12 +1,12 @@
 'use client'
 
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase'
 import { getAuthRedirectUrl } from '../../lib/authRedirect'
 import { useAuth } from '../../lib/auth'
 
-export default function LoginPage() {
+function LoginContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { session, loading } = useAuth()
@@ -170,5 +170,35 @@ export default function LoginPage() {
         </div>
       </section>
     </main>
+  )
+}
+
+function LoginLoading() {
+  return (
+    <main className="min-h-screen overflow-hidden bg-[linear-gradient(180deg,#fbecef_0%,#f6eef2_45%,#f8f3f2_100%)]">
+      <section className="mx-auto w-full max-w-4xl px-[clamp(22px,7vw,48px)] py-[72px] max-[640px]:px-6 max-[640px]:py-12">
+        <div className="mx-auto grid w-full max-w-xl gap-6 text-center">
+          <div className="grid gap-3">
+            <p className="text-[0.7rem] uppercase tracking-[0.35em] text-[color:var(--ink-600)]">
+              Secure sign in
+            </p>
+            <h1 className="[font-family:var(--font-display)] text-3xl text-[color:var(--ink-900)] sm:text-4xl">
+              Just a moment.
+            </h1>
+            <p className="text-base text-[color:var(--ink-600)]">
+              Loading sign-in details...
+            </p>
+          </div>
+        </div>
+      </section>
+    </main>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<LoginLoading />}>
+      <LoginContent />
+    </Suspense>
   )
 }

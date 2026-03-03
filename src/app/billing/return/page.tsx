@@ -1,12 +1,12 @@
 'use client'
 
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useEffect, useRef, useState } from 'react'
+import { Suspense, useEffect, useRef, useState } from 'react'
 import { fetchStripeSessionStatus } from '../../../lib/billing'
 import { createTrip } from '../../../lib/api'
 import { useAuth } from '../../../lib/auth'
 
-export default function BillingReturnPage() {
+function BillingReturnContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { session, loading: authLoading } = useAuth()
@@ -91,15 +91,7 @@ export default function BillingReturnPage() {
   }, [status, user, router])
 
   if (authLoading) {
-    return (
-      <main className="min-h-screen px-[clamp(20px,5vw,64px)] pt-8 pb-[60px]">
-        <div className="mx-auto max-w-4xl rounded-[24px] border border-[rgba(234,203,213,0.7)] bg-[linear-gradient(135deg,rgba(248,237,240,0.9),rgba(254,249,250,0.95))] px-8 py-12 shadow-[var(--shadow-soft)]">
-          <p className="text-sm text-[color:var(--ink-600)]">
-            Loading checkout status...
-          </p>
-        </div>
-      </main>
-    )
+    return <BillingReturnLoading />
   }
 
   if (!user) {
@@ -188,5 +180,25 @@ export default function BillingReturnPage() {
         </div>
       </section>
     </main>
+  )
+}
+
+function BillingReturnLoading() {
+  return (
+    <main className="min-h-screen px-[clamp(20px,5vw,64px)] pt-8 pb-[60px]">
+      <div className="mx-auto max-w-4xl rounded-[24px] border border-[rgba(234,203,213,0.7)] bg-[linear-gradient(135deg,rgba(248,237,240,0.9),rgba(254,249,250,0.95))] px-8 py-12 shadow-[var(--shadow-soft)]">
+        <p className="text-sm text-[color:var(--ink-600)]">
+          Loading checkout status...
+        </p>
+      </div>
+    </main>
+  )
+}
+
+export default function BillingReturnPage() {
+  return (
+    <Suspense fallback={<BillingReturnLoading />}>
+      <BillingReturnContent />
+    </Suspense>
   )
 }
