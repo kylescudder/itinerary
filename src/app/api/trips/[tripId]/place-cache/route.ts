@@ -3,10 +3,11 @@ import { requireSupabaseUser } from '@/lib/supabaseServer'
 
 export const runtime = 'nodejs'
 
-export async function GET(
-  request: Request,
-  { params }: { params: { tripId: string } },
-) {
+type RouteParams = { tripId: string }
+type RouteContext = { params: Promise<RouteParams> }
+
+export async function GET(request: Request, context: RouteContext) {
+  const { tripId } = await context.params
   const auth = await requireSupabaseUser(request)
   if ('error' in auth) {
     return NextResponse.json({ error: auth.error }, { status: 401 })
@@ -23,7 +24,7 @@ export async function GET(
   const { data, error } = await supabase
     .from('place_cache')
     .select('*')
-    .eq('trip_id', params.tripId)
+    .eq('trip_id', tripId)
     .ilike('description', `%${query}%`)
     .order('updated_at', { ascending: false })
     .limit(8)
@@ -35,10 +36,8 @@ export async function GET(
   return NextResponse.json(data || [])
 }
 
-export async function POST(
-  request: Request,
-  { params }: { params: { tripId: string } },
-) {
+export async function POST(request: Request, context: RouteContext) {
+  const { tripId } = await context.params
   const auth = await requireSupabaseUser(request)
   if ('error' in auth) {
     return NextResponse.json({ error: auth.error }, { status: 401 })
@@ -55,7 +54,7 @@ export async function POST(
 
   const normalized = entries.map((entry) => ({
     ...entry,
-    trip_id: params.tripId,
+    trip_id: tripId,
   }))
 
   const { error } = await supabase

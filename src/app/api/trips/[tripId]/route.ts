@@ -3,10 +3,11 @@ import { requireSupabaseUser } from '@/lib/supabaseServer'
 
 export const runtime = 'nodejs'
 
-export async function PATCH(
-  request: Request,
-  { params }: { params: { tripId: string } },
-) {
+type RouteParams = { tripId: string }
+type RouteContext = { params: Promise<RouteParams> }
+
+export async function PATCH(request: Request, context: RouteContext) {
+  const { tripId } = await context.params
   const auth = await requireSupabaseUser(request)
   if ('error' in auth) {
     return NextResponse.json({ error: auth.error }, { status: 401 })
@@ -37,7 +38,7 @@ export async function PATCH(
   const { data, error } = await supabase
     .from('trip')
     .update(payload)
-    .eq('id', params.tripId)
+    .eq('id', tripId)
     .select('*')
     .maybeSingle()
 
