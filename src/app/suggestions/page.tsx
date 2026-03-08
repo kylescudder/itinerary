@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useState } from 'react'
+import { Bed, Compass, Eye, Plus, Utensils } from 'lucide-react'
 import { createSuggestion, getSuggestions } from '../../lib/api'
 import { useAuth } from '../../lib/auth'
 import { useTrip } from '../../hooks/useTrip'
@@ -165,16 +166,16 @@ export default function SuggestionsPage() {
             items.map((suggestion) => (
               <div
                 key={suggestion.id}
-                className="rounded-[24px] border border-[rgba(234,203,213,0.7)] bg-[linear-gradient(135deg,rgba(248,237,240,0.9),rgba(254,249,250,0.95))] px-8 py-6 shadow-[var(--shadow-soft)]"
+                className="rounded-[24px] border border-[rgba(234,203,213,0.7)] bg-[linear-gradient(135deg,rgba(248,237,240,0.9),rgba(254,249,250,0.95))] px-6 py-5 shadow-[var(--shadow-soft)]"
               >
-                <p className="text-xs uppercase tracking-[0.3em] text-[color:var(--ink-600)]">
+                <span className="inline-block rounded-full border border-[color:var(--sand-300)] bg-white px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-[color:var(--clay-600)]">
                   {suggestion.type}
-                </p>
+                </span>
                 <p className="mt-2 text-base font-semibold text-[color:var(--ink-900)]">
                   {suggestion.title}
                 </p>
                 {suggestion.notes ? (
-                  <p className="mt-2 text-sm text-[color:var(--ink-600)]">
+                  <p className="mt-1.5 text-sm text-[color:var(--ink-600)]">
                     {suggestion.notes}
                   </p>
                 ) : null}
@@ -190,54 +191,76 @@ export default function SuggestionsPage() {
           )}
         </section>
 
-        <aside className="h-fit rounded-[24px] border border-[rgba(234,203,213,0.7)] bg-[linear-gradient(135deg,rgba(248,237,240,0.9),rgba(254,249,250,0.95))] px-8 py-8 shadow-[var(--shadow-soft)]">
-          <h2 className="[font-family:var(--font-display)] text-2xl text-[color:var(--ink-900)]">
-            Add a suggestion
-          </h2>
-          <p className="mt-2 text-sm text-[color:var(--ink-600)]">
-            Capture places to consider as you build the final plan.
-          </p>
-          <div className="mt-6 space-y-4">
-            <label className="text-sm font-semibold text-[color:var(--ink-700)]">
-              Title
-              <input
-                value={title}
-                onChange={(event) => setTitle(event.target.value)}
-                className="mt-2 w-full rounded-2xl border border-[color:var(--sand-300)] bg-white px-4 py-3 text-sm"
-                placeholder="Omakase dinner"
-              />
-            </label>
-            <label className="text-sm font-semibold text-[color:var(--ink-700)]">
-              Type
-              <select
-                value={type}
-                onChange={(event) => setType(event.target.value)}
-                className="mt-2 w-full rounded-2xl border border-[color:var(--sand-300)] bg-white px-4 py-3 text-sm"
+        <aside className="sticky top-6 h-fit">
+          <div className="rounded-[24px] border border-[rgba(234,203,213,0.7)] bg-[linear-gradient(135deg,rgba(248,237,240,0.9),rgba(254,249,250,0.95))] px-6 py-6 shadow-[var(--shadow-soft)]">
+            <p className="text-xs uppercase tracking-[0.3em] text-[color:var(--ink-600)]">
+              New suggestion
+            </p>
+            <div className="mt-4 space-y-4">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[color:var(--ink-600)]">
+                  Type
+                </p>
+                <div className="mt-2 grid grid-cols-6 gap-2">
+                  {(
+                    [
+                      { key: 'food', label: 'Food', Icon: Utensils, cols: 'col-span-2' },
+                      { key: 'stay', label: 'Stay', Icon: Bed, cols: 'col-span-2' },
+                      { key: 'sight', label: 'Sight', Icon: Eye, cols: 'col-span-2' },
+                      { key: 'experience', label: 'Experience', Icon: Compass, cols: 'col-span-3' },
+                      { key: 'other', label: 'Other', Icon: Plus, cols: 'col-span-3' },
+                    ] as const
+                  ).map(({ key, label, Icon, cols }) => (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => setType(key)}
+                      className={`${cols} flex items-center justify-center gap-1.5 rounded-full border px-3 py-2 text-xs font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-[color:var(--sun-500)] focus-visible:outline-offset-[3px] ${
+                        type === key
+                          ? 'border-[color:var(--sun-500)] bg-[color:var(--sun-400)] text-[color:var(--ink-900)]'
+                          : 'border-[color:var(--sand-300)] bg-white text-[color:var(--ink-700)] hover:border-[color:var(--sun-400)]'
+                      }`}
+                    >
+                      <Icon className="h-3 w-3" />
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <label className="block text-xs font-semibold uppercase tracking-[0.2em] text-[color:var(--ink-600)]">
+                Title
+                <input
+                  value={title}
+                  onChange={(event) => setTitle(event.target.value)}
+                  className="mt-2 w-full rounded-2xl border border-[color:var(--sand-300)] bg-white px-4 py-3 text-sm font-normal normal-case tracking-normal text-[color:var(--ink-900)] placeholder:text-[color:var(--ink-600)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[color:var(--sun-500)] focus-visible:outline-offset-[2px]"
+                  placeholder="Omakase dinner"
+                />
+              </label>
+              <label className="block text-xs font-semibold uppercase tracking-[0.2em] text-[color:var(--ink-600)]">
+                Notes
+                <textarea
+                  value={notes}
+                  onChange={(event) => setNotes(event.target.value)}
+                  className="mt-2 h-24 w-full rounded-2xl border border-[color:var(--sand-300)] bg-white px-4 py-3 text-sm font-normal normal-case tracking-normal text-[color:var(--ink-900)] placeholder:text-[color:var(--ink-600)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[color:var(--sun-500)] focus-visible:outline-offset-[2px]"
+                  placeholder="Great reviews and a calm atmosphere."
+                />
+              </label>
+              <button
+                type="button"
+                onClick={handleAdd}
+                disabled={loading}
+                className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[color:var(--sun-400)] px-5 py-3 text-sm font-semibold text-[color:var(--ink-900)] transition-colors hover:bg-[color:var(--sun-500)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[color:var(--sun-500)] focus-visible:outline-offset-[3px] disabled:opacity-60"
               >
-                {suggestionTypes.map((value) => (
-                  <option key={value} value={value}>
-                    {value}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="text-sm font-semibold text-[color:var(--ink-700)]">
-              Notes
-              <textarea
-                value={notes}
-                onChange={(event) => setNotes(event.target.value)}
-                className="mt-2 h-28 w-full rounded-2xl border border-[color:var(--sand-300)] bg-white px-4 py-3 text-sm"
-                placeholder="Great reviews and a calm atmosphere."
-              />
-            </label>
-            <button
-              type="button"
-              onClick={handleAdd}
-              disabled={loading}
-              className="w-full rounded-2xl bg-[color:var(--sun-400)] px-5 py-3 text-sm font-semibold text-[color:var(--ink-900)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[color:var(--sun-500)] focus-visible:outline-offset-[3px]"
-            >
-              {loading ? 'Saving...' : 'Add suggestion'}
-            </button>
+                {loading ? (
+                  'Saving...'
+                ) : (
+                  <>
+                    <Plus className="h-4 w-4" />
+                    Add suggestion
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </aside>
       </div>

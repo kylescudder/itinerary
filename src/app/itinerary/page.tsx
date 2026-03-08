@@ -22,6 +22,7 @@ import {
   groupItemsByDate,
 } from '../../lib/utils'
 import { loadGoogleMaps } from '../../lib/googleMaps'
+import { Bed, Compass, MapPin, Plus, Utensils, Zap } from 'lucide-react'
 
 const itemTypes = ['activity', 'meal', 'travel', 'stay', 'other']
 const travelModes = ['walk', 'car', 'transit'] as const
@@ -876,10 +877,11 @@ export default function ItineraryPage() {
     resetTravelFields()
   }
 
-  const openAddForm = () => {
+  const openAddForm = (initialType?: string) => {
     setEditingItem(null)
     setError(null)
     resetForm()
+    if (initialType && itemTypes.includes(initialType)) setType(initialType)
     setIsFormOpen(true)
   }
 
@@ -1274,21 +1276,37 @@ export default function ItineraryPage() {
   const isEditMode = !!editingItem
   const addForm = (
     <div className="space-y-4">
-      <label className="text-sm font-semibold text-[color:var(--ink-700)]">
-        Type
-        <select
-          value={type}
-          onChange={(event) => setType(event.target.value)}
-          disabled={isEditMode}
-          className="mt-2 w-full rounded-2xl border border-[color:var(--sand-300)] bg-white px-4 py-3 text-sm disabled:cursor-not-allowed disabled:opacity-70"
-        >
-          {itemTypes.map((value) => (
-            <option key={value} value={value}>
-              {value}
-            </option>
+      <div>
+        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[color:var(--ink-600)]">
+          Type
+        </p>
+        <div className="mt-2 grid grid-cols-6 gap-2">
+          {(
+            [
+              { key: 'activity', label: 'Activity', Icon: Zap, cols: 'col-span-2' },
+              { key: 'meal', label: 'Meal', Icon: Utensils, cols: 'col-span-2' },
+              { key: 'stay', label: 'Stay', Icon: Bed, cols: 'col-span-2' },
+              { key: 'travel', label: 'Travel', Icon: MapPin, cols: 'col-span-3' },
+              { key: 'other', label: 'Other', Icon: Compass, cols: 'col-span-3' },
+            ] as const
+          ).map(({ key, label, Icon, cols }) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => !isEditMode && setType(key)}
+              disabled={isEditMode}
+              className={`${cols} flex items-center justify-center gap-1.5 rounded-full border px-3 py-2 text-xs font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-[color:var(--sun-500)] focus-visible:outline-offset-[3px] disabled:cursor-not-allowed disabled:opacity-60 ${
+                type === key
+                  ? 'border-[color:var(--sun-500)] bg-[color:var(--sun-400)] text-[color:var(--ink-900)]'
+                  : 'border-[color:var(--sand-300)] bg-white text-[color:var(--ink-700)] hover:border-[color:var(--sun-400)]'
+              }`}
+            >
+              <Icon className="h-3.5 w-3.5" />
+              {label}
+            </button>
           ))}
-        </select>
-      </label>
+        </div>
+      </div>
       {type === 'travel' ? (
         <>
           <label className="text-sm font-semibold text-[color:var(--ink-700)]">
@@ -1909,28 +1927,59 @@ export default function ItineraryPage() {
           )}
         </section>
 
-        <aside className="h-fit rounded-[24px] border border-[rgba(234,203,213,0.7)] bg-[linear-gradient(135deg,rgba(248,237,240,0.9),rgba(254,249,250,0.95))] px-8 py-8 shadow-[var(--shadow-soft)]">
-          <h2 className="[font-family:var(--font-display)] text-2xl text-[color:var(--ink-900)]">
-            Add an item
-          </h2>
-          <p className="mt-2 text-sm text-[color:var(--ink-600)]">
-            Capture times, notes, and anything your group needs to remember.
-          </p>
-          <button
-            type="button"
-            onClick={openAddForm}
-            className="mt-6 w-full rounded-2xl bg-[color:var(--sun-400)] px-5 py-3 text-sm font-semibold text-[color:var(--ink-900)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[color:var(--sun-500)] focus-visible:outline-offset-[3px]"
-          >
-            Add item
-          </button>
+        <aside className="sticky top-6 h-fit">
+          <div className="rounded-[24px] border border-[rgba(234,203,213,0.7)] bg-[linear-gradient(135deg,rgba(248,237,240,0.9),rgba(254,249,250,0.95))] px-6 py-6 shadow-[var(--shadow-soft)]">
+            <p className="text-xs uppercase tracking-[0.3em] text-[color:var(--ink-600)]">
+              Quick add
+            </p>
+            <div className="mt-4 grid grid-cols-2 gap-2">
+              {(
+                [
+                  { key: 'activity', label: 'Activity', Icon: Zap },
+                  { key: 'meal', label: 'Meal', Icon: Utensils },
+                  { key: 'stay', label: 'Stay', Icon: Bed },
+                  { key: 'travel', label: 'Travel', Icon: MapPin },
+                ] as const
+              ).map(({ key, label, Icon }) => (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => openAddForm(key)}
+                  className="flex items-center gap-2 rounded-2xl border border-[color:var(--sand-300)] bg-white px-4 py-3 text-sm font-semibold text-[color:var(--ink-700)] transition-colors hover:border-[color:var(--sun-400)] hover:bg-[color:var(--sand-50)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[color:var(--sun-500)] focus-visible:outline-offset-[3px]"
+                >
+                  <Icon className="h-4 w-4 text-[color:var(--clay-500)]" />
+                  {label}
+                </button>
+              ))}
+              <button
+                type="button"
+                onClick={() => openAddForm('other')}
+                className="col-span-2 flex items-center justify-center gap-2 rounded-2xl border border-[color:var(--sand-300)] bg-white px-4 py-3 text-sm font-semibold text-[color:var(--ink-700)] transition-colors hover:border-[color:var(--sun-400)] hover:bg-[color:var(--sand-50)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[color:var(--sun-500)] focus-visible:outline-offset-[3px]"
+              >
+                <Compass className="h-4 w-4 text-[color:var(--clay-500)]" />
+                Other / custom
+              </button>
+            </div>
+            <div className="mt-3 border-t border-[color:var(--sand-200)] pt-3">
+              <button
+                type="button"
+                onClick={() => openAddForm()}
+                className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[color:var(--sun-400)] px-5 py-3 text-sm font-semibold text-[color:var(--ink-900)] transition-colors hover:bg-[color:var(--sun-500)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[color:var(--sun-500)] focus-visible:outline-offset-[3px]"
+              >
+                <Plus className="h-4 w-4" />
+                Add item
+              </button>
+            </div>
+          </div>
         </aside>
       </div>
       <button
         type="button"
-        onClick={openAddForm}
-        className="fixed bottom-6 right-6 z-40 rounded-full bg-[color:var(--sun-400)] px-5 py-3 text-sm font-semibold text-[color:var(--ink-900)] shadow-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-[color:var(--sun-500)] focus-visible:outline-offset-[3px]"
+        onClick={() => openAddForm()}
+        className="fixed bottom-6 right-6 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-[color:var(--sun-400)] shadow-lg transition-colors hover:bg-[color:var(--sun-500)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[color:var(--sun-500)] focus-visible:outline-offset-[3px] min-[900px]:hidden"
+        aria-label="Add item"
       >
-        Add item
+        <Plus className="h-6 w-6 text-[color:var(--ink-900)]" />
       </button>
       {isFormOpen ? (
         <div
