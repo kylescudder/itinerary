@@ -5,6 +5,7 @@ import { Suspense, useEffect, useRef, useState } from 'react'
 import { fetchStripeSessionStatus } from '../../../lib/billing'
 import { createTrip } from '../../../lib/api'
 import { useAuth } from '../../../lib/auth'
+import { supabase } from '../../../lib/supabase'
 
 function BillingReturnContent() {
   const router = useRouter()
@@ -12,6 +13,8 @@ function BillingReturnContent() {
   const { session, loading: authLoading } = useAuth()
   const [status, setStatus] = useState<string | null>(null)
   const [email, setEmail] = useState<string | null>(null)
+  const [paymentIntent, setPaymentIntent] = useState<string | null>(null)
+  const [purchaseType, setPurchaseType] = useState<'trip' | 'lifetime'>('trip')
   const [error, setError] = useState<string | null>(null)
   const [createError, setCreateError] = useState<string | null>(null)
   const [creating, setCreating] = useState(false)
@@ -38,6 +41,8 @@ function BillingReturnContent() {
       .then((data) => {
         setStatus(data.status)
         setEmail(data.customer_email ?? null)
+        setPaymentIntent(data.payment_intent ?? null)
+        setPurchaseType(data.purchase_type ?? 'trip')
       })
       .catch((err) => {
         setError(err instanceof Error ? err.message : 'Unable to load status.')
@@ -47,8 +52,50 @@ function BillingReturnContent() {
   useEffect(() => {
     if (status !== 'complete' || !user || createTriggered.current) return
     if (typeof window === 'undefined') return
+    const sessionId = searchParams.get('session_id')
+
+    createTriggered.current = true
+    setCreating(true)
+    setCreateError(null)
+
+    if (purchaseType === 'lifetime') {
+      const token = session?.access_token
+      if (!token || !sessionId) {
+        createTriggered.current = false
+        setCreateError('Unable to activate lifetime access.')
+        setCreating(false)
+        return
+      }
+      fetch('/api/stripe/activate-lifetime', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ session_id: sessionId }),
+      })
+        .then((res) => res.json())
+        .then(async (json: { ok?: boolean; error?: string }) => {
+          if (json.error) throw new Error(json.error)
+          await supabase.auth.refreshSession()
+          router.push('/trip')
+        })
+        .catch((err) => {
+          createTriggered.current = false
+          setCreateError(
+            err instanceof Error ? err.message : 'Unable to activate lifetime access.',
+          )
+        })
+        .finally(() => setCreating(false))
+      return
+    }
+
     const stored = window.localStorage.getItem(pendingTripKey)
-    if (!stored) return
+    if (!stored) {
+      createTriggered.current = false
+      setCreating(false)
+      return
+    }
 
     let payload: {
       name: string
@@ -60,20 +107,23 @@ function BillingReturnContent() {
       payload = JSON.parse(stored)
     } catch {
       window.localStorage.removeItem(pendingTripKey)
+      createTriggered.current = false
+      setCreating(false)
       return
     }
 
     if (!payload?.name) {
       window.localStorage.removeItem(pendingTripKey)
+      createTriggered.current = false
+      setCreating(false)
       return
     }
 
-    createTriggered.current = true
-    setCreating(true)
-    setCreateError(null)
     createTrip(payload.name, {
       startDate: payload.startDate,
       endDate: payload.endDate,
+      stripeSessionId: sessionId,
+      stripePaymentIntentId: paymentIntent,
     })
       .then(() => {
         window.localStorage.removeItem(pendingTripKey)
@@ -85,10 +135,8 @@ function BillingReturnContent() {
           err instanceof Error ? err.message : 'Unable to create trip.',
         )
       })
-      .finally(() => {
-        setCreating(false)
-      })
-  }, [status, user, router])
+      .finally(() => setCreating(false))
+  }, [status, user, session, router, searchParams, paymentIntent, purchaseType])
 
   if (authLoading) {
     return <BillingReturnLoading />

@@ -5,6 +5,8 @@ type StripeCheckoutResponse = {
 type StripeSessionStatusResponse = {
   status: string
   customer_email?: string | null
+  payment_intent?: string | null
+  purchase_type?: 'trip' | 'lifetime'
 }
 
 async function readStripeJson<T>(response: Response): Promise<T> {
@@ -28,13 +30,14 @@ const stripeBaseUrl = '/api/stripe'
 
 export async function createStripeCheckoutSession(options?: {
   email?: string | null
+  type?: 'trip' | 'lifetime'
 }): Promise<string> {
   const response = await fetch(`${stripeBaseUrl}/checkout`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ email: options?.email ?? null }),
+    body: JSON.stringify({ email: options?.email ?? null, type: options?.type ?? 'trip' }),
   })
 
   const data = await readStripeJson<StripeCheckoutResponse>(response)

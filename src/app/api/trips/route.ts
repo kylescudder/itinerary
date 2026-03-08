@@ -30,12 +30,14 @@ export async function POST(request: Request) {
   }
 
   const { supabase, user } = auth
-  const { name, start_date, end_date } = (await request
+  const { name, start_date, end_date, stripe_session_id, stripe_payment_intent_id } = (await request
     .json()
     .catch(() => ({}))) as {
     name?: string
     start_date?: string | null
     end_date?: string | null
+    stripe_session_id?: string | null
+    stripe_payment_intent_id?: string | null
   }
 
   if (!name || !name.trim()) {
@@ -57,6 +59,8 @@ export async function POST(request: Request) {
       code,
       start_date: start_date ?? null,
       end_date: end_date ?? null,
+      stripe_session_id: stripe_session_id ?? null,
+      stripe_payment_intent_id: stripe_payment_intent_id ?? null,
     })
 
     if (error) {

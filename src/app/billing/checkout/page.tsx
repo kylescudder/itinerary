@@ -1,23 +1,25 @@
 'use client'
 
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import {
   EmbeddedCheckout,
   EmbeddedCheckoutProvider,
 } from '@stripe/react-stripe-js'
 import { loadStripe } from '@stripe/stripe-js'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState, Suspense } from 'react'
 import { createStripeCheckoutSession } from '../../../lib/billing'
 import { useAuth } from '../../../lib/auth'
 
 const publishableKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
 const stripePromise = publishableKey ? loadStripe(publishableKey) : null
 
-export default function BillingCheckoutPage() {
+function BillingCheckoutContent() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { session, loading: authLoading } = useAuth()
   const [error, setError] = useState<string | null>(null)
   const user = session?.user
+  const purchaseType = searchParams.get('type') === 'lifetime' ? 'lifetime' : 'trip'
 
   useEffect(() => {
     if (authLoading) return
@@ -29,7 +31,7 @@ export default function BillingCheckoutPage() {
   const fetchClientSecret = useCallback(async () => {
     setError(null)
     try {
-      return await createStripeCheckoutSession({ email: user?.email ?? null })
+      return await createStripeCheckoutSession({ email: user?.email ?? null, type: purchaseType })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unable to start checkout.')
       throw err
@@ -82,7 +84,9 @@ export default function BillingCheckoutPage() {
               Checkout
             </p>
             <h1 className="[font-family:var(--font-display)] text-3xl text-[color:var(--ink-900)]">
-              Pay $5 to unlock this trip.
+              {purchaseType === 'lifetime'
+                ? 'Lifetime access — pay once, use forever.'
+                : 'Pay $5 to unlock this trip.'}
             </h1>
           </div>
         </div>
@@ -100,5 +104,13 @@ export default function BillingCheckoutPage() {
         ) : null}
       </section>
     </main>
+  )
+}
+
+export default function BillingCheckoutPage() {
+  return (
+    <Suspense>
+      <BillingCheckoutContent />
+    </Suspense>
   )
 }

@@ -139,6 +139,8 @@ export async function createTrip(
   options?: {
     startDate?: string | null
     endDate?: string | null
+    stripeSessionId?: string | null
+    stripePaymentIntentId?: string | null
   },
 ): Promise<Trip> {
   const created = await apiFetch<Trip>('/trips', {
@@ -147,6 +149,8 @@ export async function createTrip(
       name,
       start_date: options?.startDate ?? null,
       end_date: options?.endDate ?? null,
+      stripe_session_id: options?.stripeSessionId ?? null,
+      stripe_payment_intent_id: options?.stripePaymentIntentId ?? null,
     }),
   })
   setActiveTripId(created.id)

@@ -1,5 +1,6 @@
 'use client'
 
+import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
@@ -76,7 +77,7 @@ export default function Header() {
           Menu
         </button>
         <div className="flex items-center gap-3">
-          <div className="h-[46px] w-[46px] rounded-[18px] bg-[radial-gradient(circle_at_top,var(--sand-50),var(--sun-400))] shadow-[0_12px_22px_rgba(240,103,124,0.35)]" />
+          <Image src="/logo192.png" alt="Itinerary" width={46} height={46} className="rounded-[18px] shadow-[0_12px_22px_rgba(240,103,124,0.35)]" />
           <div>
             <p className="[font-family:var(--font-display)] text-lg text-[color:var(--ink-900)]">
               Itinerary
@@ -98,7 +99,7 @@ export default function Header() {
       >
         <div className="flex items-center justify-between gap-3 min-[900px]:justify-start">
           <div className="flex items-center gap-[14px]">
-            <div className="h-[46px] w-[46px] rounded-[18px] bg-[radial-gradient(circle_at_top,var(--sand-50),var(--sun-400))] shadow-[0_12px_22px_rgba(240,103,124,0.35)]" />
+            <Image src="/logo192.png" alt="Itinerary" width={46} height={46} className="rounded-[18px] shadow-[0_12px_22px_rgba(240,103,124,0.35)]" />
             <div>
               <p className="[font-family:var(--font-display)] text-xl text-[color:var(--ink-900)]">
                 Itinerary

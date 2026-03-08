@@ -29,5 +29,10 @@ export async function GET(request: Request) {
   return NextResponse.json({
     status: session.status,
     customer_email: session.customer_details?.email || session.customer_email,
+    payment_intent:
+      typeof session.payment_intent === 'string'
+        ? session.payment_intent
+        : (session.payment_intent?.id ?? null),
+    purchase_type: (session.metadata?.purchase_type ?? 'trip') as 'trip' | 'lifetime',
   })
 }

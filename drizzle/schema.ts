@@ -18,6 +18,8 @@ export const trip = pgTable('trip', {
   createdAt: timestamp('created_at', { withTimezone: true })
     .notNull()
     .defaultNow(),
+  stripeSessionId: text('stripe_session_id'),
+  stripePaymentIntentId: text('stripe_payment_intent_id'),
 })
 
 export const tripMembers = pgTable(

@@ -69,7 +69,7 @@ export default function SettingsPage() {
 
   if (authLoading || tripLoading) {
     return (
-      <main className="min-h-screen px-[clamp(20px,5vw,64px)] pt-8 pb-[60px]">
+      <main className="min-h-screen px-[clamp(16px,3vw,32px)] pt-8 pb-[60px]">
         <div className="mx-auto max-w-4xl rounded-[24px] border border-[rgba(234,203,213,0.7)] bg-[linear-gradient(135deg,rgba(248,237,240,0.9),rgba(254,249,250,0.95))] px-8 py-12 shadow-[var(--shadow-soft)]">
           <p className="text-sm text-[color:var(--ink-600)]">
             Loading settings...
@@ -85,7 +85,7 @@ export default function SettingsPage() {
 
   if (!trip) {
     return (
-      <main className="min-h-screen px-[clamp(20px,5vw,64px)] pt-8 pb-[60px]">
+      <main className="min-h-screen px-[clamp(16px,3vw,32px)] pt-8 pb-[60px]">
         <div className="mx-auto max-w-4xl rounded-[24px] border border-[rgba(234,203,213,0.7)] bg-[linear-gradient(135deg,rgba(248,237,240,0.9),rgba(254,249,250,0.95))] px-8 py-12 shadow-[var(--shadow-soft)]">
           <h1 className="[font-family:var(--font-display)] text-3xl text-[color:var(--ink-900)]">
             Create or join a trip to access settings.
@@ -103,7 +103,7 @@ export default function SettingsPage() {
   }
 
   return (
-    <main className="min-h-screen px-[clamp(20px,5vw,64px)] pt-8 pb-[60px]">
+    <main className="min-h-screen px-[clamp(16px,3vw,32px)] pt-8 pb-[60px]">
       <div className="mx-auto max-w-4xl rounded-[24px] border border-[rgba(234,203,213,0.7)] bg-[linear-gradient(135deg,rgba(248,237,240,0.9),rgba(254,249,250,0.95))] px-8 py-12 shadow-[var(--shadow-soft)]">
         <p className="text-xs uppercase tracking-[0.35em] text-[color:var(--ink-600)]">
           Settings

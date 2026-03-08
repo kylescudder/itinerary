@@ -51,6 +51,7 @@ export default function ItineraryPage() {
   const [notes, setNotes] = useState('')
   const [type, setType] = useState(itemTypes[0])
   const isAuthed = !!session?.user
+  const hasLifetimeAccess = !!session?.user?.user_metadata?.lifetime_access
 
   useEffect(() => {
     if (authLoading) return
@@ -58,6 +59,15 @@ export default function ItineraryPage() {
       router.replace('/')
     }
   }, [authLoading, isAuthed, router])
+
+  useEffect(() => {
+    if (authLoading || tripLoading) return
+    if (!isAuthed || !trip) return
+    if (hasLifetimeAccess) return
+    if (!trip.stripe_session_id) {
+      router.replace('/billing/checkout')
+    }
+  }, [authLoading, tripLoading, isAuthed, trip, hasLifetimeAccess, router])
   const [startTime, setStartTime] = useState('')
   const [placeQuery, setPlaceQuery] = useState('')
   const [placeSuggestions, setPlaceSuggestions] = useState<PlaceOption[]>([])
