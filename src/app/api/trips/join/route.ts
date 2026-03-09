@@ -9,7 +9,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: auth.error }, { status: 401 })
   }
 
-  const { supabase } = auth
+  const { supabase, user } = auth
   const { code } = (await request.json().catch(() => ({}))) as {
     code?: string
   }
@@ -21,16 +21,29 @@ export async function POST(request: Request) {
     )
   }
 
-  const { data: trip, error } = await supabase.rpc('join_trip', {
-    invite_code: code.trim(),
-  })
+  const { data: trip, error: tripError } = await supabase
+    .from('trip')
+    .select('*')
+    .eq('code', code.trim())
+    .maybeSingle()
 
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 400 })
+  if (tripError) {
+    return NextResponse.json({ error: tripError.message }, { status: 400 })
   }
 
   if (!trip) {
     return NextResponse.json({ error: 'Trip not found.' }, { status: 404 })
+  }
+
+  const { error: memberError } = await supabase
+    .from('trip_members')
+    .upsert(
+      { trip_id: trip.id, user_id: user.id, role: 'member' },
+      { onConflict: 'trip_id,user_id' },
+    )
+
+  if (memberError) {
+    return NextResponse.json({ error: memberError.message }, { status: 400 })
   }
 
   return NextResponse.json(trip)

@@ -10,10 +10,27 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: auth.error }, { status: 401 })
   }
 
-  const { supabase } = auth
+  const { supabase, user } = auth
+
+  // Explicitly filter by user membership since admin client bypasses RLS
+  const { data: memberships, error: memberError } = await supabase
+    .from('trip_members')
+    .select('trip_id')
+    .eq('user_id', user.id)
+
+  if (memberError) {
+    return NextResponse.json({ error: memberError.message }, { status: 400 })
+  }
+
+  const tripIds = memberships?.map((m) => m.trip_id) ?? []
+  if (!tripIds.length) {
+    return NextResponse.json([])
+  }
+
   const { data, error } = await supabase
     .from('trip')
     .select('*')
+    .in('id', tripIds)
     .order('created_at', { ascending: false })
 
   if (error) {
