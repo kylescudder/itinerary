@@ -93,10 +93,6 @@ export default function TripPage() {
     try {
       await joinTrip(code.trim().toUpperCase())
       await refreshTrip()
-      if (!hasLifetimeAccess) {
-        router.push('/billing/checkout')
-        return
-      }
       router.push('/itinerary')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unable to join trip.')

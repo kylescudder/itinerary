@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { generateTripCode } from '@/lib/utils'
-import { requireSupabaseUser } from '@/lib/supabaseServer'
+import { requireSupabaseUser, createSupabaseAdminClient } from '@/lib/supabaseServer'
 
 export const runtime = 'nodejs'
 
@@ -10,17 +10,44 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: auth.error }, { status: 401 })
   }
 
-  const { supabase } = auth
-  const { data, error } = await supabase
-    .from('trip')
-    .select('*')
-    .order('created_at', { ascending: false })
+  const { user } = auth
+  const admin = createSupabaseAdminClient()
 
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 400 })
+  const { data: members, error: membersError } = await admin
+    .from('trip_members')
+    .select('trip_id, role')
+    .eq('user_id', user.id)
+
+  if (membersError) {
+    return NextResponse.json({ error: membersError.message }, { status: 400 })
   }
 
-  return NextResponse.json(data || [])
+  const tripIds = (members || []).map((m) => m.trip_id)
+
+  if (!tripIds.length) {
+    return NextResponse.json([])
+  }
+
+  const { data: tripsData, error: tripsError } = await admin
+    .from('trip')
+    .select('*')
+    .in('id', tripIds)
+    .order('created_at', { ascending: false })
+
+  if (tripsError) {
+    return NextResponse.json({ error: tripsError.message }, { status: 400 })
+  }
+
+  const roleByTripId = Object.fromEntries(
+    (members || []).map((m) => [m.trip_id, m.role]),
+  )
+
+  const trips = (tripsData || []).map((trip) => ({
+    ...trip,
+    user_role: roleByTripId[trip.id] ?? 'member',
+  }))
+
+  return NextResponse.json(trips)
 }
 
 export async function POST(request: Request) {
@@ -29,7 +56,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: auth.error }, { status: 401 })
   }
 
-  const { supabase, user } = auth
+  const { user } = auth
+  const admin = createSupabaseAdminClient()
   const { name, start_date, end_date, stripe_session_id, stripe_payment_intent_id } = (await request
     .json()
     .catch(() => ({}))) as {
@@ -53,7 +81,7 @@ export async function POST(request: Request) {
   for (let attempt = 0; attempt < 5; attempt += 1) {
     const id = crypto.randomUUID()
     const code = generateTripCode()
-    const { error } = await supabase.from('trip').insert({
+    const { error } = await admin.from('trip').insert({
       id,
       name: name.trim(),
       code,
@@ -68,7 +96,7 @@ export async function POST(request: Request) {
       continue
     }
 
-    const { error: memberError } = await supabase
+    const { error: memberError } = await admin
       .from('trip_members')
       .insert({ trip_id: id, user_id: user.id, role: 'owner' })
 
@@ -77,7 +105,7 @@ export async function POST(request: Request) {
       continue
     }
 
-    const { data: trip, error: fetchError } = await supabase
+    const { data: trip, error: fetchError } = await admin
       .from('trip')
       .select('*')
       .eq('id', id)

@@ -64,6 +64,7 @@ export default function ItineraryPage() {
     if (authLoading || tripLoading) return
     if (!isAuthed || !trip) return
     if (hasLifetimeAccess) return
+    if (trip.user_role !== 'owner') return
     if (!trip.stripe_session_id) {
       router.replace('/billing/checkout')
     }

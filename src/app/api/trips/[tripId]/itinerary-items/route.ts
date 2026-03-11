@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { requireSupabaseUser } from '@/lib/supabaseServer'
+import { requireSupabaseUser, createSupabaseAdminClient } from '@/lib/supabaseServer'
 
 export const runtime = 'nodejs'
 
@@ -13,8 +13,21 @@ export async function GET(request: Request, context: RouteContext) {
     return NextResponse.json({ error: auth.error }, { status: 401 })
   }
 
-  const { supabase } = auth
-  const { data, error } = await supabase
+  const { user } = auth
+  const admin = createSupabaseAdminClient()
+
+  const { data: member } = await admin
+    .from('trip_members')
+    .select('role')
+    .eq('user_id', user.id)
+    .eq('trip_id', tripId)
+    .maybeSingle()
+
+  if (!member) {
+    return NextResponse.json({ error: 'Trip not found.' }, { status: 404 })
+  }
+
+  const { data, error } = await admin
     .from('itinerary_item')
     .select('*')
     .eq('trip_id', tripId)
@@ -34,7 +47,20 @@ export async function POST(request: Request, context: RouteContext) {
     return NextResponse.json({ error: auth.error }, { status: 401 })
   }
 
-  const { supabase } = auth
+  const { user } = auth
+  const admin = createSupabaseAdminClient()
+
+  const { data: member } = await admin
+    .from('trip_members')
+    .select('role')
+    .eq('user_id', user.id)
+    .eq('trip_id', tripId)
+    .maybeSingle()
+
+  if (!member) {
+    return NextResponse.json({ error: 'Trip not found.' }, { status: 404 })
+  }
+
   const payload = (await request.json().catch(() => null)) as Record<
     string,
     unknown
@@ -44,7 +70,7 @@ export async function POST(request: Request, context: RouteContext) {
     return NextResponse.json({ error: 'Missing payload.' }, { status: 400 })
   }
 
-  const { data, error } = await supabase
+  const { data, error } = await admin
     .from('itinerary_item')
     .insert({ ...payload, trip_id: tripId })
     .select('*')

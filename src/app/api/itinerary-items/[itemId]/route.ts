@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { requireSupabaseUser } from '@/lib/supabaseServer'
+import { requireSupabaseUser, createSupabaseAdminClient } from '@/lib/supabaseServer'
 
 export const runtime = 'nodejs'
 
@@ -13,7 +13,9 @@ export async function PATCH(request: Request, context: RouteContext) {
     return NextResponse.json({ error: auth.error }, { status: 401 })
   }
 
-  const { supabase } = auth
+  const { user } = auth
+  const admin = createSupabaseAdminClient()
+
   const { updates } = (await request.json().catch(() => ({}))) as {
     updates?: Record<string, unknown>
   }
@@ -22,10 +24,23 @@ export async function PATCH(request: Request, context: RouteContext) {
     return NextResponse.json({ error: 'No updates provided.' }, { status: 400 })
   }
 
-  const { data, error } = await supabase
+  // Get the user's trip memberships to enforce authorization
+  const { data: memberships } = await admin
+    .from('trip_members')
+    .select('trip_id')
+    .eq('user_id', user.id)
+
+  const tripIds = (memberships || []).map((m) => m.trip_id)
+
+  if (!tripIds.length) {
+    return NextResponse.json({ error: 'Itinerary item not found.' }, { status: 404 })
+  }
+
+  const { data, error } = await admin
     .from('itinerary_item')
     .update(updates)
     .eq('id', itemId)
+    .in('trip_id', tripIds)
     .select('*')
     .maybeSingle()
 
@@ -50,11 +65,26 @@ export async function DELETE(request: Request, context: RouteContext) {
     return NextResponse.json({ error: auth.error }, { status: 401 })
   }
 
-  const { supabase } = auth
-  const { data, error } = await supabase
+  const { user } = auth
+  const admin = createSupabaseAdminClient()
+
+  // Get the user's trip memberships to enforce authorization
+  const { data: memberships } = await admin
+    .from('trip_members')
+    .select('trip_id')
+    .eq('user_id', user.id)
+
+  const tripIds = (memberships || []).map((m) => m.trip_id)
+
+  if (!tripIds.length) {
+    return NextResponse.json({ tripId: null })
+  }
+
+  const { data, error } = await admin
     .from('itinerary_item')
     .delete()
     .eq('id', itemId)
+    .in('trip_id', tripIds)
     .select('*')
     .maybeSingle()
 
