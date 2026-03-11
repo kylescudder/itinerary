@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { requireSupabaseUser } from '@/lib/supabaseServer'
+import { requireSupabaseUser, createSupabaseAdminClient } from '@/lib/supabaseServer'
 
 export const runtime = 'nodejs'
 
@@ -13,7 +13,20 @@ export async function GET(request: Request, context: RouteContext) {
     return NextResponse.json({ error: auth.error }, { status: 401 })
   }
 
-  const { supabase } = auth
+  const { user } = auth
+  const admin = createSupabaseAdminClient()
+
+  const { data: member } = await admin
+    .from('trip_members')
+    .select('role')
+    .eq('user_id', user.id)
+    .eq('trip_id', tripId)
+    .maybeSingle()
+
+  if (!member) {
+    return NextResponse.json({ error: 'Trip not found.' }, { status: 404 })
+  }
+
   const { searchParams } = new URL(request.url)
   const query = searchParams.get('query')?.trim()
 
@@ -21,7 +34,7 @@ export async function GET(request: Request, context: RouteContext) {
     return NextResponse.json([])
   }
 
-  const { data, error } = await supabase
+  const { data, error } = await admin
     .from('place_cache')
     .select('*')
     .eq('trip_id', tripId)
@@ -43,7 +56,20 @@ export async function POST(request: Request, context: RouteContext) {
     return NextResponse.json({ error: auth.error }, { status: 401 })
   }
 
-  const { supabase } = auth
+  const { user } = auth
+  const admin = createSupabaseAdminClient()
+
+  const { data: member } = await admin
+    .from('trip_members')
+    .select('role')
+    .eq('user_id', user.id)
+    .eq('trip_id', tripId)
+    .maybeSingle()
+
+  if (!member) {
+    return NextResponse.json({ error: 'Trip not found.' }, { status: 404 })
+  }
+
   const { entries } = (await request.json().catch(() => ({}))) as {
     entries?: Array<Record<string, unknown>>
   }
@@ -57,7 +83,7 @@ export async function POST(request: Request, context: RouteContext) {
     trip_id: tripId,
   }))
 
-  const { error } = await supabase
+  const { error } = await admin
     .from('place_cache')
     .upsert(normalized, { onConflict: 'trip_id,place_id' })
 

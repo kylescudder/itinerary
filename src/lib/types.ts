@@ -7,6 +7,7 @@ export type Trip = {
   created_at: string
   stripe_session_id: string | null
   stripe_payment_intent_id: string | null
+  user_role?: string
 }
 
 export type ItineraryItem = {
