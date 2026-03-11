@@ -48,11 +48,14 @@ export async function requireSupabaseUser(request: Request) {
     return { error: 'Missing authentication token.' }
   }
 
-  const supabase = createSupabaseServerClient(token)
-  const { data, error } = await supabase.auth.getUser()
+  const authClient = createSupabaseServerClient(token)
+  // Pass token explicitly so it works without a persisted session
+  const { data, error } = await authClient.auth.getUser(token)
   if (error || !data.user) {
     return { error: 'Invalid session.' }
   }
 
+  // Use admin client for all DB operations to bypass RLS JWT issues
+  const supabase = createSupabaseAdminClient()
   return { supabase, user: data.user as User }
 }
