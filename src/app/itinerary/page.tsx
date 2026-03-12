@@ -40,7 +40,7 @@ type PlaceOption = {
 export default function ItineraryPage() {
   const router = useRouter()
   const { session, loading: authLoading } = useAuth()
-  const { trip, loading: tripLoading } = useTrip()
+  const { trip, trips, loading: tripLoading, setActiveTrip } = useTrip()
   const [items, setItems] = useState<ItineraryItem[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -1548,20 +1548,49 @@ export default function ItineraryPage() {
             ? 'Release to refresh'
             : 'Pull to refresh'}
       </div>
-      <div className="mx-auto grid max-w-6xl gap-8 min-[900px]:grid-cols-[1.1fr_0.9fr]">
+      <div className="mx-auto max-w-3xl">
         <section className="space-y-6">
           <div className="rounded-[24px] border border-[rgba(234,203,213,0.7)] bg-[linear-gradient(135deg,rgba(248,237,240,0.9),rgba(254,249,250,0.95))] px-8 py-8 shadow-[var(--shadow-soft)]">
-            <p className="text-xs uppercase tracking-[0.35em] text-[color:var(--ink-600)]">
-              {trip.name}
-            </p>
-            <h1 className="[font-family:var(--font-display)] text-3xl text-[color:var(--ink-900)]">
-              Itinerary
-            </h1>
-            {tripDateRange ? (
-              <p className="mt-2 text-sm text-[color:var(--ink-600)]">
-                {tripDateRange}
-              </p>
-            ) : null}
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <p className="text-xs uppercase tracking-[0.35em] text-[color:var(--ink-600)]">
+                  {trip.name}
+                </p>
+                <h1 className="[font-family:var(--font-display)] text-3xl text-[color:var(--ink-900)]">
+                  Itinerary
+                </h1>
+                {tripDateRange ? (
+                  <p className="mt-2 text-sm text-[color:var(--ink-600)]">
+                    {tripDateRange}
+                  </p>
+                ) : null}
+              </div>
+              <div className="flex items-end gap-3">
+                {trips.length > 1 ? (
+                  <label className="text-[10px] uppercase tracking-[0.3em] text-[color:var(--ink-600)]">
+                    Active trip
+                    <select
+                      value={trip.id}
+                      onChange={(event) => setActiveTrip(event.target.value)}
+                      className="mt-2 w-full rounded-2xl border border-[color:var(--sand-300)] bg-white px-3 py-2 text-sm normal-case tracking-normal text-[color:var(--ink-900)]"
+                    >
+                      {trips.map((entry) => (
+                        <option key={entry.id} value={entry.id}>
+                          {entry.name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                ) : null}
+                <button
+                  type="button"
+                  onClick={openAddForm}
+                  className="shrink-0 rounded-2xl bg-[color:var(--sun-400)] px-4 py-2 text-sm font-semibold text-[color:var(--ink-900)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[color:var(--sun-500)] focus-visible:outline-offset-[3px]"
+                >
+                  + Add item
+                </button>
+              </div>
+            </div>
           </div>
 
           {error ? (
@@ -1902,57 +1931,11 @@ export default function ItineraryPage() {
           ) : (
             <div className="rounded-[24px] border border-[rgba(234,203,213,0.7)] bg-[linear-gradient(135deg,rgba(248,237,240,0.9),rgba(254,249,250,0.95))] px-8 py-8 shadow-[var(--shadow-soft)]">
               <p className="text-sm text-[color:var(--ink-600)]">
-                No itinerary items yet. Add the first one on the right.
+                No itinerary items yet. Use the button above to add the first one.
               </p>
             </div>
           )}
         </section>
-
-        <aside className="sticky top-6 h-fit">
-          <div className="rounded-[24px] border border-[rgba(234,203,213,0.7)] bg-[linear-gradient(135deg,rgba(248,237,240,0.9),rgba(254,249,250,0.95))] px-6 py-6 shadow-[var(--shadow-soft)]">
-            <p className="text-xs uppercase tracking-[0.3em] text-[color:var(--ink-600)]">
-              Quick add
-            </p>
-            <div className="mt-4 grid grid-cols-2 gap-2">
-              {(
-                [
-                  { key: 'activity', label: 'Activity', Icon: Zap },
-                  { key: 'meal', label: 'Meal', Icon: Utensils },
-                  { key: 'stay', label: 'Stay', Icon: Bed },
-                  { key: 'travel', label: 'Travel', Icon: MapPin },
-                ] as const
-              ).map(({ key, label, Icon }) => (
-                <button
-                  key={key}
-                  type="button"
-                  onClick={() => openAddForm(key)}
-                  className="flex items-center gap-2 rounded-2xl border border-[color:var(--sand-300)] bg-white px-4 py-3 text-sm font-semibold text-[color:var(--ink-700)] transition-colors hover:border-[color:var(--sun-400)] hover:bg-[color:var(--sand-50)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[color:var(--sun-500)] focus-visible:outline-offset-[3px]"
-                >
-                  <Icon className="h-4 w-4 text-[color:var(--clay-500)]" />
-                  {label}
-                </button>
-              ))}
-              <button
-                type="button"
-                onClick={() => openAddForm('other')}
-                className="col-span-2 flex items-center justify-center gap-2 rounded-2xl border border-[color:var(--sand-300)] bg-white px-4 py-3 text-sm font-semibold text-[color:var(--ink-700)] transition-colors hover:border-[color:var(--sun-400)] hover:bg-[color:var(--sand-50)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[color:var(--sun-500)] focus-visible:outline-offset-[3px]"
-              >
-                <Compass className="h-4 w-4 text-[color:var(--clay-500)]" />
-                Other / custom
-              </button>
-            </div>
-            <div className="mt-3 border-t border-[color:var(--sand-200)] pt-3">
-              <button
-                type="button"
-                onClick={() => openAddForm()}
-                className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[color:var(--sun-400)] px-5 py-3 text-sm font-semibold text-[color:var(--ink-900)] transition-colors hover:bg-[color:var(--sun-500)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[color:var(--sun-500)] focus-visible:outline-offset-[3px]"
-              >
-                <Plus className="h-4 w-4" />
-                Add item
-              </button>
-            </div>
-          </div>
-        </aside>
       </div>
       <button
         type="button"
