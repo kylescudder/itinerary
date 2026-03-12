@@ -1,5 +1,8 @@
 import { NextResponse } from 'next/server'
-import { requireSupabaseUser } from '@/lib/supabaseServer'
+import {
+  requireSupabaseUser,
+  createSupabaseAdminClient,
+} from '@/lib/supabaseServer'
 
 export const runtime = 'nodejs'
 
@@ -9,7 +12,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: auth.error }, { status: 401 })
   }
 
-  const { supabase, user } = auth
+  const { user } = auth
   const { code } = (await request.json().catch(() => ({}))) as {
     code?: string
   }
@@ -21,7 +24,10 @@ export async function POST(request: Request) {
     )
   }
 
-  const { data: trip, error: tripError } = await supabase
+  // Use admin client to bypass RLS — the user isn't a member yet
+  const admin = createSupabaseAdminClient()
+
+  const { data: trip, error: tripError } = await admin
     .from('trip')
     .select('*')
     .eq('code', code.trim())
@@ -35,7 +41,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Trip not found.' }, { status: 404 })
   }
 
-  const { error: memberError } = await supabase
+  const { error: memberError } = await admin
     .from('trip_members')
     .upsert(
       { trip_id: trip.id, user_id: user.id, role: 'member' },
