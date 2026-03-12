@@ -1582,13 +1582,6 @@ export default function ItineraryPage() {
                     </select>
                   </label>
                 ) : null}
-                <button
-                  type="button"
-                  onClick={() => openAddForm()}
-                  className="shrink-0 rounded-2xl bg-[color:var(--sun-400)] px-4 py-2 text-sm font-semibold text-[color:var(--ink-900)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[color:var(--sun-500)] focus-visible:outline-offset-[3px]"
-                >
-                  + Add item
-                </button>
               </div>
             </div>
           </div>
@@ -1989,10 +1982,10 @@ export default function ItineraryPage() {
       <button
         type="button"
         onClick={() => openAddForm()}
-        className="fixed bottom-6 right-6 z-[8] flex h-14 w-14 items-center justify-center rounded-full bg-[color:var(--sun-400)] shadow-lg transition-colors hover:bg-[color:var(--sun-500)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[color:var(--sun-500)] focus-visible:outline-offset-[3px] min-[900px]:hidden"
+        className="fixed bottom-6 right-6 z-[8] rounded-full bg-[color:var(--sun-400)] px-5 py-3 text-sm font-semibold text-[color:var(--ink-900)] shadow-lg transition-all hover:bg-[color:var(--sun-500)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[color:var(--sun-500)] focus-visible:outline-offset-[3px] min-[900px]:hidden"
         aria-label="Add item"
       >
-        <Plus className="h-6 w-6 text-[color:var(--ink-900)]" />
+        Add item
       </button>
       {isFormOpen ? (
         <div
