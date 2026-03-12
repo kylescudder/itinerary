@@ -10,7 +10,6 @@ export default function AccountPage() {
   const { session, loading: authLoading, signOut } = useAuth()
   const { trip, loading: tripLoading } = useTrip()
   const user = session?.user
-  const hasLifetimeAccess = !!user?.user_metadata?.lifetime_access
   const name =
     user?.user_metadata?.full_name ||
     user?.user_metadata?.name ||
@@ -26,7 +25,7 @@ export default function AccountPage() {
 
   if (authLoading || tripLoading) {
     return (
-      <main className="min-h-screen px-[clamp(16px,3vw,32px)] pt-8 pb-[60px]">
+      <main className="min-h-screen px-[clamp(20px,5vw,64px)] pt-8 pb-[60px]">
         <div className="mx-auto max-w-4xl rounded-[24px] border border-[rgba(234,203,213,0.7)] bg-[linear-gradient(135deg,rgba(248,237,240,0.9),rgba(254,249,250,0.95))] px-8 py-12 shadow-[var(--shadow-soft)]">
           <p className="text-sm text-[color:var(--ink-600)]">
             Loading account...
@@ -41,7 +40,7 @@ export default function AccountPage() {
   }
 
   return (
-    <main className="min-h-screen px-[clamp(16px,3vw,32px)] pt-8 pb-[60px]">
+    <main className="min-h-screen px-[clamp(20px,5vw,64px)] pt-8 pb-[60px]">
       <section className="mx-auto grid max-w-4xl gap-10 rounded-[24px] border border-[rgba(234,203,213,0.7)] bg-[linear-gradient(135deg,rgba(248,237,240,0.9),rgba(254,249,250,0.95))] px-8 py-12 shadow-[var(--shadow-soft)] min-[900px]:grid-cols-[1.2fr_0.8fr]">
         <div className="space-y-6">
           <p className="text-xs uppercase tracking-[0.35em] text-[color:var(--ink-600)]">
@@ -114,30 +113,18 @@ export default function AccountPage() {
             <div className="flex items-center justify-between gap-[10px] rounded-[16px] border border-[rgba(234,203,213,0.6)] bg-[rgba(255,255,255,0.8)] px-[14px] py-3 text-[0.85rem] text-[color:var(--ink-700)]">
               <span>Trip price</span>
               <strong className="text-[0.95rem] text-[color:var(--ink-900)]">
-                {hasLifetimeAccess ? 'Free' : '$5'}
+                $5
               </strong>
             </div>
-            {!hasLifetimeAccess ? (
-              <div className="flex items-center justify-between gap-[10px] rounded-[16px] border border-[rgba(234,203,213,0.6)] bg-[rgba(255,255,255,0.8)] px-[14px] py-3 text-[0.85rem] text-[color:var(--ink-700)]">
-                <span>Billing method</span>
-                <strong className="text-[0.95rem] text-[color:var(--ink-900)]">
-                  Stripe
-                </strong>
-              </div>
-            ) : null}
-            {hasLifetimeAccess ? (
-              <div className="flex items-center justify-between gap-[10px] rounded-[16px] border border-[rgba(234,203,213,0.6)] bg-[rgba(255,255,255,0.8)] px-[14px] py-3 text-[0.85rem] text-[color:var(--ink-700)]">
-                <span>Access</span>
-                <strong className="text-[0.95rem] text-[color:var(--ink-900)]">
-                  Lifetime
-                </strong>
-              </div>
-            ) : null}
+            <div className="flex items-center justify-between gap-[10px] rounded-[16px] border border-[rgba(234,203,213,0.6)] bg-[rgba(255,255,255,0.8)] px-[14px] py-3 text-[0.85rem] text-[color:var(--ink-700)]">
+              <span>Billing method</span>
+              <strong className="text-[0.95rem] text-[color:var(--ink-900)]">
+                Stripe
+              </strong>
+            </div>
           </div>
           <p className="mt-5 text-sm text-[color:var(--ink-600)]">
-            {hasLifetimeAccess
-              ? 'You have lifetime access — no further charges, ever.'
-              : 'Each trip is billed once, with a single Stripe receipt per trip.'}
+            Each trip is billed once, with a single Stripe receipt per trip.
           </p>
         </div>
       </section>
