@@ -22,6 +22,7 @@ import {
   groupItemsByDate,
 } from '../../lib/utils'
 import { loadGoogleMaps } from '../../lib/googleMaps'
+import { Bed, Compass, MapPin, Plus, Utensils, Zap } from 'lucide-react'
 
 const itemTypes = ['activity', 'meal', 'travel', 'stay', 'other']
 const travelModes = ['walk', 'car', 'transit'] as const
@@ -51,6 +52,7 @@ export default function ItineraryPage() {
   const [notes, setNotes] = useState('')
   const [type, setType] = useState(itemTypes[0])
   const isAuthed = !!session?.user
+  const hasLifetimeAccess = !!session?.user?.user_metadata?.lifetime_access
 
   useEffect(() => {
     if (authLoading) return
@@ -58,6 +60,16 @@ export default function ItineraryPage() {
       router.replace('/')
     }
   }, [authLoading, isAuthed, router])
+
+  useEffect(() => {
+    if (authLoading || tripLoading) return
+    if (!isAuthed || !trip) return
+    if (hasLifetimeAccess) return
+    if (trip.user_role !== 'owner') return
+    if (!trip.stripe_session_id) {
+      router.replace('/billing/checkout')
+    }
+  }, [authLoading, tripLoading, isAuthed, trip, hasLifetimeAccess, router])
   const [startTime, setStartTime] = useState('')
   const [placeQuery, setPlaceQuery] = useState('')
   const [placeSuggestions, setPlaceSuggestions] = useState<PlaceOption[]>([])
@@ -866,13 +878,11 @@ export default function ItineraryPage() {
     resetTravelFields()
   }
 
-  const openAddForm = (itemType?: string) => {
+  const openAddForm = (initialType?: string) => {
     setEditingItem(null)
     setError(null)
     resetForm()
-    if (itemType && itemTypes.includes(itemType)) {
-      setType(itemType)
-    }
+    if (initialType && itemTypes.includes(initialType)) setType(initialType)
     setIsFormOpen(true)
   }
 
@@ -1267,21 +1277,37 @@ export default function ItineraryPage() {
   const isEditMode = !!editingItem
   const addForm = (
     <div className="space-y-4">
-      <label className="text-sm font-semibold text-[color:var(--ink-700)]">
-        Type
-        <select
-          value={type}
-          onChange={(event) => setType(event.target.value)}
-          disabled={isEditMode}
-          className="mt-2 w-full rounded-2xl border border-[color:var(--sand-300)] bg-white px-4 py-3 text-sm disabled:cursor-not-allowed disabled:opacity-70"
-        >
-          {itemTypes.map((value) => (
-            <option key={value} value={value}>
-              {value}
-            </option>
+      <div>
+        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[color:var(--ink-600)]">
+          Type
+        </p>
+        <div className="mt-2 grid grid-cols-6 gap-2">
+          {(
+            [
+              { key: 'activity', label: 'Activity', Icon: Zap, cols: 'col-span-3' },
+              { key: 'meal', label: 'Meal', Icon: Utensils, cols: 'col-span-3' },
+              { key: 'stay', label: 'Stay', Icon: Bed, cols: 'col-span-3' },
+              { key: 'travel', label: 'Travel', Icon: MapPin, cols: 'col-span-3' },
+              { key: 'other', label: 'Other', Icon: Compass, cols: 'col-span-6' },
+            ] as const
+          ).map(({ key, label, Icon, cols }) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => !isEditMode && setType(key)}
+              disabled={isEditMode}
+              className={`${cols} flex items-center justify-center gap-1.5 rounded-full border px-3 py-2 text-xs font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-[color:var(--sun-500)] focus-visible:outline-offset-[3px] disabled:cursor-not-allowed disabled:opacity-60 ${
+                type === key
+                  ? 'border-[color:var(--sun-500)] bg-[color:var(--sun-400)] text-[color:var(--ink-900)]'
+                  : 'border-[color:var(--sand-300)] bg-white text-[color:var(--ink-700)] hover:border-[color:var(--sun-400)]'
+              }`}
+            >
+              <Icon className="h-3.5 w-3.5" />
+              {label}
+            </button>
           ))}
-        </select>
-      </label>
+        </div>
+      </div>
       {type === 'travel' ? (
         <>
           <label className="text-sm font-semibold text-[color:var(--ink-700)]">
@@ -1522,7 +1548,7 @@ export default function ItineraryPage() {
             ? 'Release to refresh'
             : 'Pull to refresh'}
       </div>
-      <div className="mx-auto grid max-w-6xl gap-8 min-[900px]:grid-cols-[1.1fr_0.9fr]">
+      <div className="mx-auto grid max-w-4xl gap-6 min-[900px]:grid-cols-[1fr_220px]">
         <section className="space-y-6">
           <div className="rounded-[24px] border border-[rgba(234,203,213,0.7)] bg-[linear-gradient(135deg,rgba(248,237,240,0.9),rgba(254,249,250,0.95))] px-8 py-8 shadow-[var(--shadow-soft)]">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
@@ -1539,22 +1565,31 @@ export default function ItineraryPage() {
                   </p>
                 ) : null}
               </div>
-              {trips.length > 1 ? (
-                <label className="text-[10px] uppercase tracking-[0.3em] text-[color:var(--ink-600)]">
-                  Active trip
-                  <select
-                    value={trip.id}
-                    onChange={(event) => setActiveTrip(event.target.value)}
-                    className="mt-2 w-full rounded-2xl border border-[color:var(--sand-300)] bg-white px-3 py-2 text-sm normal-case tracking-normal text-[color:var(--ink-900)]"
-                  >
-                    {trips.map((entry) => (
-                      <option key={entry.id} value={entry.id}>
-                        {entry.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              ) : null}
+              <div className="flex items-end gap-3">
+                {trips.length > 1 ? (
+                  <label className="text-[10px] uppercase tracking-[0.3em] text-[color:var(--ink-600)]">
+                    Active trip
+                    <select
+                      value={trip.id}
+                      onChange={(event) => setActiveTrip(event.target.value)}
+                      className="mt-2 w-full rounded-2xl border border-[color:var(--sand-300)] bg-white px-3 py-2 text-sm normal-case tracking-normal text-[color:var(--ink-900)]"
+                    >
+                      {trips.map((entry) => (
+                        <option key={entry.id} value={entry.id}>
+                          {entry.name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                ) : null}
+                <button
+                  type="button"
+                  onClick={() => openAddForm()}
+                  className="shrink-0 rounded-2xl bg-[color:var(--sun-400)] px-4 py-2 text-sm font-semibold text-[color:var(--ink-900)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[color:var(--sun-500)] focus-visible:outline-offset-[3px]"
+                >
+                  + Add item
+                </button>
+              </div>
             </div>
           </div>
 
@@ -1896,69 +1931,68 @@ export default function ItineraryPage() {
           ) : (
             <div className="rounded-[24px] border border-[rgba(234,203,213,0.7)] bg-[linear-gradient(135deg,rgba(248,237,240,0.9),rgba(254,249,250,0.95))] px-8 py-8 shadow-[var(--shadow-soft)]">
               <p className="text-sm text-[color:var(--ink-600)]">
-                No itinerary items yet. Add the first one on the right.
+                No itinerary items yet. Use the button above to add the first one.
               </p>
             </div>
           )}
         </section>
-
-        <aside className="hidden h-fit rounded-[24px] border border-[rgba(234,203,213,0.7)] bg-[linear-gradient(135deg,rgba(248,237,240,0.9),rgba(254,249,250,0.95))] px-8 py-8 shadow-[var(--shadow-soft)] min-[900px]:block">
-          <h2 className="[font-family:var(--font-display)] text-2xl text-[color:var(--ink-900)]">
-            Add an item
-          </h2>
-          <p className="mt-2 text-sm text-[color:var(--ink-600)]">
-            Capture times, notes, and anything your group needs to remember.
-          </p>
-          <div className="mt-6 grid grid-cols-2 gap-3">
-            <button
-              type="button"
-              onClick={() => openAddForm('activity')}
-              className="flex items-center gap-3 rounded-2xl bg-[color:var(--sun-400)] px-4 py-3 text-sm font-semibold text-[color:var(--ink-900)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[color:var(--sun-500)] focus-visible:outline-offset-[3px]"
-            >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76" /></svg>
-              Activity
-            </button>
-            <button
-              type="button"
-              onClick={() => openAddForm('meal')}
-              className="flex items-center gap-3 rounded-2xl bg-[color:var(--sun-400)] px-4 py-3 text-sm font-semibold text-[color:var(--ink-900)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[color:var(--sun-500)] focus-visible:outline-offset-[3px]"
-            >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2" /><path d="M7 2v20" /><path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7" /></svg>
-              Meal
-            </button>
-            <button
-              type="button"
-              onClick={() => openAddForm('travel')}
-              className="flex items-center gap-3 rounded-2xl bg-[color:var(--sun-400)] px-4 py-3 text-sm font-semibold text-[color:var(--ink-900)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[color:var(--sun-500)] focus-visible:outline-offset-[3px]"
-            >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2Z" /></svg>
-              Travel
-            </button>
-            <button
-              type="button"
-              onClick={() => openAddForm('stay')}
-              className="flex items-center gap-3 rounded-2xl bg-[color:var(--sun-400)] px-4 py-3 text-sm font-semibold text-[color:var(--ink-900)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[color:var(--sun-500)] focus-visible:outline-offset-[3px]"
-            >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 20v-8a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v8" /><path d="M4 10V6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v4" /><path d="M2 20h20" /><path d="M12 4v6" /></svg>
-              Stay
-            </button>
-            <button
-              type="button"
-              onClick={() => openAddForm('other')}
-              className="col-span-2 flex items-center gap-3 rounded-2xl bg-[color:var(--sun-400)] px-4 py-3 text-sm font-semibold text-[color:var(--ink-900)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[color:var(--sun-500)] focus-visible:outline-offset-[3px]"
-            >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="1" /><circle cx="19" cy="12" r="1" /><circle cx="5" cy="12" r="1" /></svg>
-              Other
-            </button>
+        <aside className="hidden min-[900px]:block">
+          <div className="sticky top-8 rounded-[24px] border border-[rgba(234,203,213,0.7)] bg-[linear-gradient(135deg,rgba(248,237,240,0.9),rgba(254,249,250,0.95))] px-6 py-6 shadow-[var(--shadow-soft)]">
+            <p className="mb-4 text-xs uppercase tracking-[0.3em] text-[color:var(--ink-600)]">
+              Add an item
+            </p>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => openAddForm('activity')}
+                className="flex items-center justify-center gap-2 rounded-2xl bg-[color:var(--sun-400)] px-4 py-3 text-sm font-semibold text-[color:var(--ink-900)] transition-colors hover:bg-[color:var(--sun-500)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[color:var(--sun-500)] focus-visible:outline-offset-[3px]"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg>
+                Activity
+              </button>
+              <button
+                type="button"
+                onClick={() => openAddForm('meal')}
+                className="flex items-center justify-center gap-2 rounded-2xl bg-[color:var(--sun-400)] px-4 py-3 text-sm font-semibold text-[color:var(--ink-900)] transition-colors hover:bg-[color:var(--sun-500)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[color:var(--sun-500)] focus-visible:outline-offset-[3px]"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"/></svg>
+                Meal
+              </button>
+              <button
+                type="button"
+                onClick={() => openAddForm('travel')}
+                className="flex items-center justify-center gap-2 rounded-2xl bg-[color:var(--sun-400)] px-4 py-3 text-sm font-semibold text-[color:var(--ink-900)] transition-colors hover:bg-[color:var(--sun-500)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[color:var(--sun-500)] focus-visible:outline-offset-[3px]"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/></svg>
+                Travel
+              </button>
+              <button
+                type="button"
+                onClick={() => openAddForm('stay')}
+                className="flex items-center justify-center gap-2 rounded-2xl bg-[color:var(--sun-400)] px-4 py-3 text-sm font-semibold text-[color:var(--ink-900)] transition-colors hover:bg-[color:var(--sun-500)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[color:var(--sun-500)] focus-visible:outline-offset-[3px]"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 4v16"/><path d="M2 8h18a2 2 0 0 1 2 2v10"/><path d="M2 17h20"/><path d="M6 8v9"/></svg>
+                Stay
+              </button>
+              <button
+                type="button"
+                onClick={() => openAddForm('other')}
+                className="col-span-2 flex items-center justify-center gap-2 rounded-2xl bg-[color:var(--sun-400)] px-4 py-3 text-sm font-semibold text-[color:var(--ink-900)] transition-colors hover:bg-[color:var(--sun-500)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[color:var(--sun-500)] focus-visible:outline-offset-[3px]"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+                Other
+              </button>
+            </div>
           </div>
         </aside>
       </div>
       <button
         type="button"
         onClick={() => openAddForm()}
-        className="fixed bottom-6 right-6 z-[8] rounded-full bg-[color:var(--sun-400)] px-5 py-3 text-sm font-semibold text-[color:var(--ink-900)] shadow-lg min-[900px]:hidden focus-visible:outline focus-visible:outline-2 focus-visible:outline-[color:var(--sun-500)] focus-visible:outline-offset-[3px]"
+        className="fixed bottom-6 right-6 z-[8] flex h-14 w-14 items-center justify-center rounded-full bg-[color:var(--sun-400)] shadow-lg transition-colors hover:bg-[color:var(--sun-500)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[color:var(--sun-500)] focus-visible:outline-offset-[3px] min-[900px]:hidden"
+        aria-label="Add item"
       >
-        Add item
+        <Plus className="h-6 w-6 text-[color:var(--ink-900)]" />
       </button>
       {isFormOpen ? (
         <div
