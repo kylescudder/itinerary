@@ -1584,7 +1584,7 @@ export default function ItineraryPage() {
                 ) : null}
                 <button
                   type="button"
-                  onClick={openAddForm}
+                  onClick={() => openAddForm()}
                   className="shrink-0 rounded-2xl bg-[color:var(--sun-400)] px-4 py-2 text-sm font-semibold text-[color:var(--ink-900)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[color:var(--sun-500)] focus-visible:outline-offset-[3px]"
                 >
                   + Add item
