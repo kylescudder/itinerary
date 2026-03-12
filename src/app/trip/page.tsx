@@ -124,7 +124,7 @@ export default function TripPage() {
           <button
             type="button"
             onClick={() => (formVisible ? setShowForm(false) : openForm())}
-            className="flex items-center gap-2 rounded-full bg-[color:var(--sun-400)] px-5 py-2.5 text-sm font-semibold text-[color:var(--ink-900)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[color:var(--sun-500)] focus-visible:outline-offset-[3px]"
+            className={`${formVisible ? 'flex' : 'hidden md:flex'} items-center gap-2 rounded-full bg-[color:var(--sun-400)] px-5 py-2.5 text-sm font-semibold text-[color:var(--ink-900)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[color:var(--sun-500)] focus-visible:outline-offset-[3px]`}
           >
             <span
               className="inline-block transition-transform duration-300"
@@ -280,7 +280,7 @@ export default function TripPage() {
       <button
         type="button"
         onClick={openForm}
-        className="fixed bottom-6 right-6 z-[8] rounded-full bg-[color:var(--sun-400)] px-5 py-3 text-sm font-semibold text-[color:var(--ink-900)] shadow-lg transition-all hover:bg-[color:var(--sun-500)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[color:var(--sun-500)] focus-visible:outline-offset-[3px]"
+        className="fixed bottom-6 right-6 z-[8] rounded-full bg-[color:var(--sun-400)] px-5 py-3 text-sm font-semibold text-[color:var(--ink-900)] shadow-lg transition-all hover:bg-[color:var(--sun-500)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[color:var(--sun-500)] focus-visible:outline-offset-[3px] md:hidden"
         style={{
           opacity: formVisible ? 0 : 1,
           pointerEvents: formVisible ? 'none' : 'auto',
