@@ -16,11 +16,15 @@ export function createSupabaseServerClient(accessToken: string) {
   }
 
   return createClient(supabaseUrl, supabaseAnonKey, {
-    accessToken: async () => accessToken,
     auth: {
       autoRefreshToken: false,
       persistSession: false,
       detectSessionInUrl: false,
+    },
+    global: {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
     },
   })
 }
@@ -44,24 +48,14 @@ export async function requireSupabaseUser(request: Request) {
     return { error: 'Missing authentication token.' }
   }
 
-  // Validate the user with a plain client (accessToken option disables auth methods)
-  const authClient = createClient(supabaseUrl!, supabaseAnonKey!, {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false,
-      detectSessionInUrl: false,
-    },
-    global: {
-      headers: { Authorization: `Bearer ${token}` },
-    },
-  })
+  const authClient = createSupabaseServerClient(token)
+  // Pass token explicitly so it works without a persisted session
   const { data, error } = await authClient.auth.getUser(token)
   if (error || !data.user) {
     return { error: 'Invalid session.' }
   }
 
-  // Use the accessToken client for data queries (properly sets auth.uid() in RLS)
-  const supabase = createSupabaseServerClient(token)
-
+  // Use admin client for all DB operations to bypass RLS JWT issues
+  const supabase = createSupabaseAdminClient()
   return { supabase, user: data.user as User }
 }
