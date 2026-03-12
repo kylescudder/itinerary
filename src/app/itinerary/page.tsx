@@ -22,7 +22,7 @@ import {
   groupItemsByDate,
 } from '../../lib/utils'
 import { loadGoogleMaps } from '../../lib/googleMaps'
-import { Bed, Compass, MapPin, Plus, Utensils, Zap } from 'lucide-react'
+import { Bed, Compass, MapPin, Utensils, Zap } from 'lucide-react'
 
 const itemTypes = ['activity', 'meal', 'travel', 'stay', 'other']
 const travelModes = ['walk', 'car', 'transit'] as const
