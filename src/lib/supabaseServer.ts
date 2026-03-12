@@ -25,6 +25,19 @@ export function createSupabaseServerClient(accessToken: string) {
   })
 }
 
+export function createSupabaseAdminClient() {
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+  if (!supabaseUrl || !serviceRoleKey) {
+    throw new Error('Missing Supabase admin configuration.')
+  }
+  return createClient(supabaseUrl, serviceRoleKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    },
+  })
+}
+
 export async function requireSupabaseUser(request: Request) {
   const token = readAccessToken(request)
   if (!token) {
