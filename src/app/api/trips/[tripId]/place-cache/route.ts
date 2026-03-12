@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { requireSupabaseUser, createSupabaseAdminClient } from '@/lib/supabaseServer'
+import { requireSupabaseUser } from '@/lib/supabaseServer'
 
 export const runtime = 'nodejs'
 
@@ -13,10 +13,9 @@ export async function GET(request: Request, context: RouteContext) {
     return NextResponse.json({ error: auth.error }, { status: 401 })
   }
 
-  const { user } = auth
-  const admin = createSupabaseAdminClient()
+  const { supabase, user } = auth
 
-  const { data: member } = await admin
+  const { data: member } = await supabase
     .from('trip_members')
     .select('role')
     .eq('user_id', user.id)
@@ -34,7 +33,7 @@ export async function GET(request: Request, context: RouteContext) {
     return NextResponse.json([])
   }
 
-  const { data, error } = await admin
+  const { data, error } = await supabase
     .from('place_cache')
     .select('*')
     .eq('trip_id', tripId)
@@ -56,10 +55,9 @@ export async function POST(request: Request, context: RouteContext) {
     return NextResponse.json({ error: auth.error }, { status: 401 })
   }
 
-  const { user } = auth
-  const admin = createSupabaseAdminClient()
+  const { supabase, user } = auth
 
-  const { data: member } = await admin
+  const { data: member } = await supabase
     .from('trip_members')
     .select('role')
     .eq('user_id', user.id)
@@ -83,7 +81,7 @@ export async function POST(request: Request, context: RouteContext) {
     trip_id: tripId,
   }))
 
-  const { error } = await admin
+  const { error } = await supabase
     .from('place_cache')
     .upsert(normalized, { onConflict: 'trip_id,place_id' })
 

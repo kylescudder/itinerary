@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { requireSupabaseUser, createSupabaseAdminClient } from '@/lib/supabaseServer'
+import { requireSupabaseUser } from '@/lib/supabaseServer'
 
 export const runtime = 'nodejs'
 
@@ -13,8 +13,7 @@ export async function PATCH(request: Request, context: RouteContext) {
     return NextResponse.json({ error: auth.error }, { status: 401 })
   }
 
-  const { user } = auth
-  const admin = createSupabaseAdminClient()
+  const { supabase, user } = auth
 
   const { updates } = (await request.json().catch(() => ({}))) as {
     updates?: Record<string, unknown>
@@ -25,7 +24,7 @@ export async function PATCH(request: Request, context: RouteContext) {
   }
 
   // Get the user's trip memberships to enforce authorization
-  const { data: memberships } = await admin
+  const { data: memberships } = await supabase
     .from('trip_members')
     .select('trip_id')
     .eq('user_id', user.id)
@@ -36,7 +35,7 @@ export async function PATCH(request: Request, context: RouteContext) {
     return NextResponse.json({ error: 'Itinerary item not found.' }, { status: 404 })
   }
 
-  const { data, error } = await admin
+  const { data, error } = await supabase
     .from('itinerary_item')
     .update(updates)
     .eq('id', itemId)
@@ -65,11 +64,10 @@ export async function DELETE(request: Request, context: RouteContext) {
     return NextResponse.json({ error: auth.error }, { status: 401 })
   }
 
-  const { user } = auth
-  const admin = createSupabaseAdminClient()
+  const { supabase, user } = auth
 
   // Get the user's trip memberships to enforce authorization
-  const { data: memberships } = await admin
+  const { data: memberships } = await supabase
     .from('trip_members')
     .select('trip_id')
     .eq('user_id', user.id)
@@ -80,7 +78,7 @@ export async function DELETE(request: Request, context: RouteContext) {
     return NextResponse.json({ tripId: null })
   }
 
-  const { data, error } = await admin
+  const { data, error } = await supabase
     .from('itinerary_item')
     .delete()
     .eq('id', itemId)

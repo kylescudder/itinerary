@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { requireSupabaseUser, createSupabaseAdminClient } from '@/lib/supabaseServer'
+import { requireSupabaseUser } from '@/lib/supabaseServer'
 
 export const runtime = 'nodejs'
 
@@ -13,10 +13,9 @@ export async function PATCH(request: Request, context: RouteContext) {
     return NextResponse.json({ error: auth.error }, { status: 401 })
   }
 
-  const { user } = auth
-  const admin = createSupabaseAdminClient()
+  const { supabase, user } = auth
 
-  const { data: member } = await admin
+  const { data: member } = await supabase
     .from('trip_members')
     .select('role')
     .eq('user_id', user.id)
@@ -48,7 +47,7 @@ export async function PATCH(request: Request, context: RouteContext) {
     return NextResponse.json({ error: 'No updates provided.' }, { status: 400 })
   }
 
-  const { data, error } = await admin
+  const { data, error } = await supabase
     .from('trip')
     .update(payload)
     .eq('id', tripId)

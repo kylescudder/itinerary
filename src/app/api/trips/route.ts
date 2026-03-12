@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { generateTripCode } from '@/lib/utils'
-import { requireSupabaseUser, createSupabaseAdminClient } from '@/lib/supabaseServer'
+import { requireSupabaseUser } from '@/lib/supabaseServer'
 
 export const runtime = 'nodejs'
 
@@ -10,10 +10,9 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: auth.error }, { status: 401 })
   }
 
-  const { user } = auth
-  const admin = createSupabaseAdminClient()
+  const { supabase, user } = auth
 
-  const { data: members, error: membersError } = await admin
+  const { data: members, error: membersError } = await supabase
     .from('trip_members')
     .select('trip_id, role')
     .eq('user_id', user.id)
@@ -28,7 +27,7 @@ export async function GET(request: Request) {
     return NextResponse.json([])
   }
 
-  const { data: tripsData, error: tripsError } = await admin
+  const { data: tripsData, error: tripsError } = await supabase
     .from('trip')
     .select('*')
     .in('id', tripIds)
@@ -56,8 +55,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: auth.error }, { status: 401 })
   }
 
-  const { user } = auth
-  const admin = createSupabaseAdminClient()
+  const { supabase, user } = auth
   const { name, start_date, end_date, stripe_session_id, stripe_payment_intent_id } = (await request
     .json()
     .catch(() => ({}))) as {
@@ -81,7 +79,7 @@ export async function POST(request: Request) {
   for (let attempt = 0; attempt < 5; attempt += 1) {
     const id = crypto.randomUUID()
     const code = generateTripCode()
-    const { error } = await admin.from('trip').insert({
+    const { error } = await supabase.from('trip').insert({
       id,
       name: name.trim(),
       code,
@@ -96,7 +94,7 @@ export async function POST(request: Request) {
       continue
     }
 
-    const { error: memberError } = await admin
+    const { error: memberError } = await supabase
       .from('trip_members')
       .insert({ trip_id: id, user_id: user.id, role: 'owner' })
 
@@ -105,7 +103,7 @@ export async function POST(request: Request) {
       continue
     }
 
-    const { data: trip, error: fetchError } = await admin
+    const { data: trip, error: fetchError } = await supabase
       .from('trip')
       .select('*')
       .eq('id', id)
