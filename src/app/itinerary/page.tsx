@@ -48,6 +48,7 @@ export default function ItineraryPage() {
   const [isRefreshing, setIsRefreshing] = useState(false)
   const pullStartY = useRef<number | null>(null)
   const isPulling = useRef(false)
+  const savedScrollY = useRef(0)
   const [title, setTitle] = useState('')
   const [notes, setNotes] = useState('')
   const [type, setType] = useState(itemTypes[0])
@@ -556,6 +557,9 @@ export default function ItineraryPage() {
       if (event.key === 'Escape') {
         setIsFormOpen(false)
         setEditingItem(null)
+        requestAnimationFrame(() => {
+          window.scrollTo(0, savedScrollY.current)
+        })
       }
     }
     window.addEventListener('keydown', handleKeyDown)
@@ -881,6 +885,7 @@ export default function ItineraryPage() {
   }
 
   const openAddForm = (initialType?: string) => {
+    savedScrollY.current = window.scrollY
     setEditingItem(null)
     setError(null)
     resetForm()
@@ -889,6 +894,7 @@ export default function ItineraryPage() {
   }
 
   const openEditForm = (item: ItineraryItem) => {
+    savedScrollY.current = window.scrollY
     setEditingItem(item)
     setError(null)
     setType(item.type)
@@ -925,6 +931,9 @@ export default function ItineraryPage() {
   const closeForm = () => {
     setIsFormOpen(false)
     setEditingItem(null)
+    requestAnimationFrame(() => {
+      window.scrollTo(0, savedScrollY.current)
+    })
   }
 
   const handleAdd = async () => {
