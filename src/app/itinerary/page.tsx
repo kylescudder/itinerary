@@ -794,7 +794,11 @@ export default function ItineraryPage() {
 
     const run = async () => {
       for (const item of travelItems) {
-        if (manualTravelInfo[item.id]) continue
+        if (
+          manualTravelInfo[item.id] &&
+          manualTravelInfo[item.id].mode === (item.travel_mode || 'walk')
+        )
+          continue
         const mode = item.travel_mode || 'walk'
         const travelMode =
           mode === 'car'
