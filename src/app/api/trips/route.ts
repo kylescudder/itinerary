@@ -56,9 +56,13 @@ export async function POST(request: Request) {
   }
 
   const { supabase, user } = auth
-  const { name, start_date, end_date, stripe_session_id, stripe_payment_intent_id } = (await request
-    .json()
-    .catch(() => ({}))) as {
+  const {
+    name,
+    start_date,
+    end_date,
+    stripe_session_id,
+    stripe_payment_intent_id,
+  } = (await request.json().catch(() => ({}))) as {
     name?: string
     start_date?: string | null
     end_date?: string | null

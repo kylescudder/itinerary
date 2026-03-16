@@ -83,7 +83,9 @@ function BillingReturnContent() {
         .catch((err) => {
           createTriggered.current = false
           setCreateError(
-            err instanceof Error ? err.message : 'Unable to activate lifetime access.',
+            err instanceof Error
+              ? err.message
+              : 'Unable to activate lifetime access.',
           )
         })
         .finally(() => setCreating(false))

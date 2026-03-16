@@ -12,7 +12,11 @@ const lifetimePriceId = process.env.STRIPE_LIFETIME_PRICE_ID
 
 export async function POST(request: Request) {
   try {
-    if (!stripeSecretKey || !lifetimePriceId || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    if (
+      !stripeSecretKey ||
+      !lifetimePriceId ||
+      !process.env.SUPABASE_SERVICE_ROLE_KEY
+    ) {
       return NextResponse.json(
         { error: 'Missing server configuration.' },
         { status: 500 },
@@ -29,7 +33,10 @@ export async function POST(request: Request) {
     }
 
     if (!session_id) {
-      return NextResponse.json({ error: 'Missing session_id.' }, { status: 400 })
+      return NextResponse.json(
+        { error: 'Missing session_id.' },
+        { status: 400 },
+      )
     }
 
     const stripe = new Stripe(stripeSecretKey, {
@@ -66,7 +73,8 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ ok: true })
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Internal server error.'
+    const message =
+      err instanceof Error ? err.message : 'Internal server error.'
     return NextResponse.json({ error: message }, { status: 500 })
   }
 }

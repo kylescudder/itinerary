@@ -37,7 +37,10 @@ export async function createStripeCheckoutSession(options?: {
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ email: options?.email ?? null, type: options?.type ?? 'trip' }),
+    body: JSON.stringify({
+      email: options?.email ?? null,
+      type: options?.type ?? 'trip',
+    }),
   })
 
   const data = await readStripeJson<StripeCheckoutResponse>(response)

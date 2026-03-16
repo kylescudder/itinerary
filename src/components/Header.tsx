@@ -77,7 +77,13 @@ export default function Header() {
           Menu
         </button>
         <div className="flex items-center gap-3">
-          <Image src="/logo192.png" alt="Itinerary" width={46} height={46} className="rounded-[18px] shadow-[0_12px_22px_rgba(240,103,124,0.35)]" />
+          <Image
+            src="/logo192.png"
+            alt="Itinerary"
+            width={46}
+            height={46}
+            className="rounded-[18px] shadow-[0_12px_22px_rgba(240,103,124,0.35)]"
+          />
           <div>
             <p className="[font-family:var(--font-display)] text-lg text-[color:var(--ink-900)]">
               Itinerary
@@ -99,7 +105,13 @@ export default function Header() {
       >
         <div className="flex items-center justify-between gap-3 min-[900px]:justify-start">
           <div className="flex items-center gap-[14px]">
-            <Image src="/logo192.png" alt="Itinerary" width={46} height={46} className="rounded-[18px] shadow-[0_12px_22px_rgba(240,103,124,0.35)]" />
+            <Image
+              src="/logo192.png"
+              alt="Itinerary"
+              width={46}
+              height={46}
+              className="rounded-[18px] shadow-[0_12px_22px_rgba(240,103,124,0.35)]"
+            />
             <div>
               <p className="[font-family:var(--font-display)] text-xl text-[color:var(--ink-900)]">
                 Itinerary

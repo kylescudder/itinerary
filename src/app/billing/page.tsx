@@ -57,7 +57,8 @@ export default function BillingPage() {
 
         {hasLifetimeAccess ? (
           <div className="mb-6 rounded-2xl border border-[rgba(234,203,213,0.7)] bg-[rgba(254,249,250,0.92)] px-5 py-4 text-sm text-[color:var(--ink-700)]">
-            You already have lifetime access — create as many trips as you like at no extra charge.
+            You already have lifetime access — create as many trips as you like
+            at no extra charge.
           </div>
         ) : null}
 

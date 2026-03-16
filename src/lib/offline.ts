@@ -118,7 +118,7 @@ export const readCachedTripById = (tripId: string) =>
 const readItineraryCacheMap = () =>
   readJson<Record<string, ItineraryItem[]>>(
     STORAGE_KEYS.itineraryItemsByTrip,
-    {}
+    {},
   )
 
 const writeItineraryCacheMap = (map: Record<string, ItineraryItem[]>) => {
@@ -145,14 +145,14 @@ export const updateCachedItineraryItem = (
   tripId: string,
   id: string,
   updates: UpdateItineraryItemPayload,
-  updatedAt: string
+  updatedAt: string,
 ) => {
   const map = readItineraryCacheMap()
   const current = map[tripId] || []
   writeItineraryCacheMap({
     ...map,
     [tripId]: current.map((item) =>
-      item.id === id ? { ...item, ...updates, updated_at: updatedAt } : item
+      item.id === id ? { ...item, ...updates, updated_at: updatedAt } : item,
     ),
   })
 }
@@ -160,7 +160,7 @@ export const updateCachedItineraryItem = (
 export const replaceCachedItineraryItem = (
   tripId: string,
   localId: string,
-  item: ItineraryItem
+  item: ItineraryItem,
 ) => {
   const map = readItineraryCacheMap()
   const current = map[tripId] || []
@@ -182,7 +182,7 @@ export const removeCachedItineraryItem = (tripId: string, id: string) => {
 const readSuggestionCacheMap = () =>
   readJson<Record<string, PlaceSuggestion[]>>(
     STORAGE_KEYS.suggestionsByTrip,
-    {}
+    {},
   )
 
 const writeSuggestionCacheMap = (map: Record<string, PlaceSuggestion[]>) => {
@@ -208,7 +208,7 @@ export const addCachedSuggestion = (tripId: string, item: PlaceSuggestion) => {
 export const replaceCachedSuggestion = (
   tripId: string,
   localId: string,
-  item: PlaceSuggestion
+  item: PlaceSuggestion,
 ) => {
   const map = readSuggestionCacheMap()
   const current = map[tripId] || []
@@ -240,8 +240,8 @@ export const removePendingCreateItineraryItem = (localId: string) => {
   savePendingActions(
     current.filter(
       (action) =>
-        !(action.type === 'createItineraryItem' && action.localId === localId)
-    )
+        !(action.type === 'createItineraryItem' && action.localId === localId),
+    ),
   )
 }
 

@@ -19,7 +19,8 @@ function BillingCheckoutContent() {
   const { session, loading: authLoading } = useAuth()
   const [error, setError] = useState<string | null>(null)
   const user = session?.user
-  const purchaseType = searchParams.get('type') === 'lifetime' ? 'lifetime' : 'trip'
+  const purchaseType =
+    searchParams.get('type') === 'lifetime' ? 'lifetime' : 'trip'
 
   useEffect(() => {
     if (authLoading) return
@@ -31,7 +32,10 @@ function BillingCheckoutContent() {
   const fetchClientSecret = useCallback(async () => {
     setError(null)
     try {
-      return await createStripeCheckoutSession({ email: user?.email ?? null, type: purchaseType })
+      return await createStripeCheckoutSession({
+        email: user?.email ?? null,
+        type: purchaseType,
+      })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unable to start checkout.')
       throw err
