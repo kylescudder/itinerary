@@ -113,6 +113,7 @@ export default function ItineraryPage() {
   )
   const placesRef = useRef<google.maps.places.PlacesService | null>(null)
   const directionsRef = useRef<google.maps.DirectionsService | null>(null)
+  const [directionsReady, setDirectionsReady] = useState(false)
   const [travelInfo, setTravelInfo] = useState<
     Record<
       string,
@@ -235,6 +236,7 @@ export default function ItineraryPage() {
         }
         if (!directionsRef.current) {
           directionsRef.current = new google.maps.DirectionsService()
+          setDirectionsReady(true)
         }
       } catch (err) {
         if (mounted) {
@@ -744,7 +746,7 @@ export default function ItineraryPage() {
     }
 
     run()
-  }, [items, travelInfo])
+  }, [items, travelInfo, directionsReady])
 
   useEffect(() => {
     const service = directionsRef.current
@@ -825,7 +827,7 @@ export default function ItineraryPage() {
     }
 
     run()
-  }, [items, manualTravelInfo])
+  }, [items, manualTravelInfo, directionsReady])
 
   const grouped = useMemo(() => groupItemsByDate(items), [items])
 
@@ -1284,11 +1286,31 @@ export default function ItineraryPage() {
         <div className="mt-2 grid grid-cols-6 gap-2">
           {(
             [
-              { key: 'activity', label: 'Activity', Icon: Zap, cols: 'col-span-3' },
-              { key: 'meal', label: 'Meal', Icon: Utensils, cols: 'col-span-3' },
+              {
+                key: 'activity',
+                label: 'Activity',
+                Icon: Zap,
+                cols: 'col-span-3',
+              },
+              {
+                key: 'meal',
+                label: 'Meal',
+                Icon: Utensils,
+                cols: 'col-span-3',
+              },
               { key: 'stay', label: 'Stay', Icon: Bed, cols: 'col-span-3' },
-              { key: 'travel', label: 'Travel', Icon: MapPin, cols: 'col-span-3' },
-              { key: 'other', label: 'Other', Icon: Compass, cols: 'col-span-6' },
+              {
+                key: 'travel',
+                label: 'Travel',
+                Icon: MapPin,
+                cols: 'col-span-3',
+              },
+              {
+                key: 'other',
+                label: 'Other',
+                Icon: Compass,
+                cols: 'col-span-6',
+              },
             ] as const
           ).map(({ key, label, Icon, cols }) => (
             <button
@@ -1924,7 +1946,8 @@ export default function ItineraryPage() {
           ) : (
             <div className="rounded-[24px] border border-[rgba(234,203,213,0.7)] bg-[linear-gradient(135deg,rgba(248,237,240,0.9),rgba(254,249,250,0.95))] px-8 py-8 shadow-[var(--shadow-soft)]">
               <p className="text-sm text-[color:var(--ink-600)]">
-                No itinerary items yet. Use the button above to add the first one.
+                No itinerary items yet. Use the button above to add the first
+                one.
               </p>
             </div>
           )}
@@ -1940,7 +1963,20 @@ export default function ItineraryPage() {
                 onClick={() => openAddForm('activity')}
                 className="flex items-center justify-center gap-2 rounded-2xl bg-[color:var(--sun-400)] px-4 py-3 text-sm font-semibold text-[color:var(--ink-900)] transition-colors hover:bg-[color:var(--sun-500)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[color:var(--sun-500)] focus-visible:outline-offset-[3px]"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <circle cx="12" cy="12" r="10" />
+                  <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76" />
+                </svg>
                 Activity
               </button>
               <button
@@ -1948,7 +1984,21 @@ export default function ItineraryPage() {
                 onClick={() => openAddForm('meal')}
                 className="flex items-center justify-center gap-2 rounded-2xl bg-[color:var(--sun-400)] px-4 py-3 text-sm font-semibold text-[color:var(--ink-900)] transition-colors hover:bg-[color:var(--sun-500)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[color:var(--sun-500)] focus-visible:outline-offset-[3px]"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"/></svg>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2" />
+                  <path d="M7 2v20" />
+                  <path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7" />
+                </svg>
                 Meal
               </button>
               <button
@@ -1956,7 +2006,19 @@ export default function ItineraryPage() {
                 onClick={() => openAddForm('travel')}
                 className="flex items-center justify-center gap-2 rounded-2xl bg-[color:var(--sun-400)] px-4 py-3 text-sm font-semibold text-[color:var(--ink-900)] transition-colors hover:bg-[color:var(--sun-500)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[color:var(--sun-500)] focus-visible:outline-offset-[3px]"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/></svg>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z" />
+                </svg>
                 Travel
               </button>
               <button
@@ -1964,7 +2026,22 @@ export default function ItineraryPage() {
                 onClick={() => openAddForm('stay')}
                 className="flex items-center justify-center gap-2 rounded-2xl bg-[color:var(--sun-400)] px-4 py-3 text-sm font-semibold text-[color:var(--ink-900)] transition-colors hover:bg-[color:var(--sun-500)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[color:var(--sun-500)] focus-visible:outline-offset-[3px]"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 4v16"/><path d="M2 8h18a2 2 0 0 1 2 2v10"/><path d="M2 17h20"/><path d="M6 8v9"/></svg>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M2 4v16" />
+                  <path d="M2 8h18a2 2 0 0 1 2 2v10" />
+                  <path d="M2 17h20" />
+                  <path d="M6 8v9" />
+                </svg>
                 Stay
               </button>
               <button
@@ -1972,7 +2049,21 @@ export default function ItineraryPage() {
                 onClick={() => openAddForm('other')}
                 className="col-span-2 flex items-center justify-center gap-2 rounded-2xl bg-[color:var(--sun-400)] px-4 py-3 text-sm font-semibold text-[color:var(--ink-900)] transition-colors hover:bg-[color:var(--sun-500)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[color:var(--sun-500)] focus-visible:outline-offset-[3px]"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <circle cx="12" cy="12" r="1" />
+                  <circle cx="19" cy="12" r="1" />
+                  <circle cx="5" cy="12" r="1" />
+                </svg>
                 Other
               </button>
             </div>

@@ -134,10 +134,20 @@ export default function SuggestionsPage() {
         <div className="mt-2 grid grid-cols-6 gap-2">
           {(
             [
-              { key: 'food', label: 'Food', Icon: Utensils, cols: 'col-span-3' },
+              {
+                key: 'food',
+                label: 'Food',
+                Icon: Utensils,
+                cols: 'col-span-3',
+              },
               { key: 'stay', label: 'Stay', Icon: Bed, cols: 'col-span-3' },
               { key: 'sight', label: 'Sight', Icon: Eye, cols: 'col-span-3' },
-              { key: 'experience', label: 'Experience', Icon: Compass, cols: 'col-span-3' },
+              {
+                key: 'experience',
+                label: 'Experience',
+                Icon: Compass,
+                cols: 'col-span-3',
+              },
               { key: 'other', label: 'Other', Icon: Plus, cols: 'col-span-6' },
             ] as const
           ).map(({ key, label, Icon, cols }) => (
@@ -247,9 +257,7 @@ export default function SuggestionsPage() {
             <p className="text-xs uppercase tracking-[0.3em] text-[color:var(--ink-600)]">
               New suggestion
             </p>
-            <div className="mt-4">
-              {suggestionForm}
-            </div>
+            <div className="mt-4">{suggestionForm}</div>
           </div>
         </aside>
       </div>

@@ -32,7 +32,10 @@ export async function PATCH(request: Request, context: RouteContext) {
   const tripIds = (memberships || []).map((m) => m.trip_id)
 
   if (!tripIds.length) {
-    return NextResponse.json({ error: 'Itinerary item not found.' }, { status: 404 })
+    return NextResponse.json(
+      { error: 'Itinerary item not found.' },
+      { status: 404 },
+    )
   }
 
   const { data, error } = await supabase

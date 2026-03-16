@@ -128,7 +128,9 @@ export default function TripPage() {
           >
             <span
               className="inline-block transition-transform duration-300"
-              style={{ transform: formVisible ? 'rotate(45deg)' : 'rotate(0deg)' }}
+              style={{
+                transform: formVisible ? 'rotate(45deg)' : 'rotate(0deg)',
+              }}
             >
               +
             </span>

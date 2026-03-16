@@ -15,7 +15,7 @@ self.addEventListener('install', (event) => {
     caches
       .open(CACHE_NAME)
       .then((cache) => cache.addAll(STATIC_ASSETS))
-      .then(() => self.skipWaiting())
+      .then(() => self.skipWaiting()),
   )
 })
 
@@ -26,11 +26,13 @@ self.addEventListener('activate', (event) => {
       .then((keys) =>
         Promise.all(
           keys
-            .filter((key) => key.startsWith('itinerary-shell-') && key !== CACHE_NAME)
-            .map((key) => caches.delete(key))
-        )
+            .filter(
+              (key) => key.startsWith('itinerary-shell-') && key !== CACHE_NAME,
+            )
+            .map((key) => caches.delete(key)),
+        ),
       )
-      .then(() => self.clients.claim())
+      .then(() => self.clients.claim()),
   )
 })
 

@@ -33,6 +33,8 @@ export async function GET(request: Request) {
       typeof session.payment_intent === 'string'
         ? session.payment_intent
         : (session.payment_intent?.id ?? null),
-    purchase_type: (session.metadata?.purchase_type ?? 'trip') as 'trip' | 'lifetime',
+    purchase_type: (session.metadata?.purchase_type ?? 'trip') as
+      | 'trip'
+      | 'lifetime',
   })
 }

@@ -37,7 +37,11 @@ export async function POST(request: Request) {
 
   if (!selectedPriceId) {
     return NextResponse.json(
-      { error: isLifetime ? 'Lifetime price not configured.' : 'Missing Stripe configuration.' },
+      {
+        error: isLifetime
+          ? 'Lifetime price not configured.'
+          : 'Missing Stripe configuration.',
+      },
       { status: 500 },
     )
   }
