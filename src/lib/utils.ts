@@ -35,6 +35,7 @@ export function formatDateLabel(date: string) {
     weekday: 'short',
     month: 'short',
     day: 'numeric',
+    timeZone: 'UTC',
   })
 }
 
@@ -52,6 +53,7 @@ export function formatTripDateRange(
     const options: Intl.DateTimeFormatOptions = {
       month: 'short',
       day: 'numeric',
+      timeZone: 'UTC',
     }
     if (includeYear) {
       options.year = 'numeric'
@@ -60,7 +62,7 @@ export function formatTripDateRange(
   }
 
   if (start && end) {
-    const includeYear = start.getFullYear() !== end.getFullYear()
+    const includeYear = start.getUTCFullYear() !== end.getUTCFullYear()
     const startLabel = format(start, includeYear)
     const endLabel = format(end, includeYear)
     return startLabel === endLabel ? startLabel : `${startLabel} - ${endLabel}`
@@ -78,6 +80,7 @@ export function formatTimeLabel(dateTime: string) {
   return parsed.toLocaleTimeString('en-US', {
     hour: 'numeric',
     minute: '2-digit',
+    timeZone: 'UTC',
   })
 }
 
