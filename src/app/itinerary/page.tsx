@@ -839,6 +839,26 @@ export default function ItineraryPage() {
 
   const grouped = useMemo(() => groupItemsByDate(items), [items])
 
+  const isItemFullyDone = (item: ItineraryItem) =>
+    item.type === 'travel' ? !!item.from_done && !!item.to_done : !!item.done
+
+  const isGroupComplete = (group: { items: ItineraryItem[] }) =>
+    group.items.length > 0 && group.items.every(isItemFullyDone)
+
+  const [expandedDates, setExpandedDates] = useState<Set<string>>(new Set())
+
+  const toggleDateCollapse = (date: string) => {
+    setExpandedDates((prev) => {
+      const next = new Set(prev)
+      if (next.has(date)) {
+        next.delete(date)
+      } else {
+        next.add(date)
+      }
+      return next
+    })
+  }
+
   const sortItems = (next: ItineraryItem[]) =>
     [...next].sort((a, b) => {
       if (!a.start_time && !b.start_time) return 0
@@ -1634,328 +1654,364 @@ export default function ItineraryPage() {
               </p>
             </div>
           ) : grouped.length ? (
-            grouped.map((group) => (
-              <div
-                key={group.date}
-                className="rounded-[24px] border border-[rgba(234,203,213,0.7)] bg-[linear-gradient(135deg,rgba(248,237,240,0.9),rgba(254,249,250,0.95))] px-8 py-6 shadow-[var(--shadow-soft)]"
-              >
-                <p className="text-xs uppercase tracking-[0.3em] text-[color:var(--ink-600)]">
-                  {formatDateLabel(group.date)}
-                </p>
-                <div className="mt-4 space-y-3">
-                  {group.items.map((item, index) => {
-                    const next = group.items[index + 1]
-                    const isTravel = item.type === 'travel'
-                    const sameLocation =
-                      !!next &&
-                      !isTravel &&
-                      next.type !== 'travel' &&
-                      ((item.place_id &&
-                        next.place_id &&
-                        item.place_id === next.place_id) ||
-                        (item.lat != null &&
+            grouped.map((group) => {
+              const complete = isGroupComplete(group)
+              const collapsed = complete && !expandedDates.has(group.date)
+              return (
+                <div
+                  key={group.date}
+                  className="rounded-[24px] border border-[rgba(234,203,213,0.7)] bg-[linear-gradient(135deg,rgba(248,237,240,0.9),rgba(254,249,250,0.95))] px-8 py-6 shadow-[var(--shadow-soft)]"
+                >
+                  <button
+                    type="button"
+                    onClick={() => toggleDateCollapse(group.date)}
+                    className="flex w-full items-center justify-between gap-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[color:var(--sun-500)] focus-visible:outline-offset-[3px]"
+                  >
+                    <p className="text-xs uppercase tracking-[0.3em] text-[color:var(--ink-600)]">
+                      {formatDateLabel(group.date)}
+                    </p>
+                    {complete ? (
+                      <span className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-[color:var(--ink-500)]">
+                        All done
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="12"
+                          height="12"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2.5"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          className={`transition-transform ${collapsed ? '' : 'rotate-180'}`}
+                        >
+                          <polyline points="6 9 12 15 18 9" />
+                        </svg>
+                      </span>
+                    ) : null}
+                  </button>
+                  {!collapsed ? (
+                    <div className="mt-4 space-y-3">
+                      {group.items.map((item, index) => {
+                        const next = group.items[index + 1]
+                        const isTravel = item.type === 'travel'
+                        const sameLocation =
+                          !!next &&
+                          !isTravel &&
+                          next.type !== 'travel' &&
+                          ((item.place_id &&
+                            next.place_id &&
+                            item.place_id === next.place_id) ||
+                            (item.lat != null &&
+                              item.lng != null &&
+                              next.lat != null &&
+                              next.lng != null &&
+                              item.lat === next.lat &&
+                              item.lng === next.lng))
+                        const sameLocationFromTravel =
+                          !!next &&
+                          isTravel &&
+                          next.type !== 'travel' &&
+                          ((item.to_place_id &&
+                            next.place_id &&
+                            item.to_place_id === next.place_id) ||
+                            (item.to_lat != null &&
+                              item.to_lng != null &&
+                              next.lat != null &&
+                              next.lng != null &&
+                              item.to_lat === next.lat &&
+                              item.to_lng === next.lng))
+                        const showAutoTravel =
+                          !!next &&
+                          !isTravel &&
+                          next.type !== 'travel' &&
+                          !sameLocation
+                        const showAutoTravelFromTravel =
+                          !!next &&
+                          isTravel &&
+                          next.type !== 'travel' &&
+                          !sameLocationFromTravel
+                        const key = showAutoTravel
+                          ? `${item.id}:${next.id}`
+                          : null
+                        const travelKey = showAutoTravelFromTravel
+                          ? `travel:${item.id}:${next.id}`
+                          : null
+                        const info = key
+                          ? travelInfo[key]
+                          : travelKey
+                            ? travelInfo[travelKey]
+                            : null
+                        const hasCoords =
+                          showAutoTravel &&
+                          item.lat != null &&
                           item.lng != null &&
                           next.lat != null &&
-                          next.lng != null &&
-                          item.lat === next.lat &&
-                          item.lng === next.lng))
-                    const sameLocationFromTravel =
-                      !!next &&
-                      isTravel &&
-                      next.type !== 'travel' &&
-                      ((item.to_place_id &&
-                        next.place_id &&
-                        item.to_place_id === next.place_id) ||
-                        (item.to_lat != null &&
+                          next.lng != null
+                        const hasTravelCoords =
+                          showAutoTravelFromTravel &&
+                          item.to_lat != null &&
                           item.to_lng != null &&
                           next.lat != null &&
-                          next.lng != null &&
-                          item.to_lat === next.lat &&
-                          item.to_lng === next.lng))
-                    const showAutoTravel =
-                      !!next &&
-                      !isTravel &&
-                      next.type !== 'travel' &&
-                      !sameLocation
-                    const showAutoTravelFromTravel =
-                      !!next &&
-                      isTravel &&
-                      next.type !== 'travel' &&
-                      !sameLocationFromTravel
-                    const key = showAutoTravel ? `${item.id}:${next.id}` : null
-                    const travelKey = showAutoTravelFromTravel
-                      ? `travel:${item.id}:${next.id}`
-                      : null
-                    const info = key
-                      ? travelInfo[key]
-                      : travelKey
-                        ? travelInfo[travelKey]
-                        : null
-                    const hasCoords =
-                      showAutoTravel &&
-                      item.lat != null &&
-                      item.lng != null &&
-                      next.lat != null &&
-                      next.lng != null
-                    const hasTravelCoords =
-                      showAutoTravelFromTravel &&
-                      item.to_lat != null &&
-                      item.to_lng != null &&
-                      next.lat != null &&
-                      next.lng != null
-                    const manualInfo = isTravel
-                      ? manualTravelInfo[item.id]
-                      : null
-                    const hasManualTravelCoords =
-                      isTravel &&
-                      item.from_lat != null &&
-                      item.from_lng != null &&
-                      item.to_lat != null &&
-                      item.to_lng != null
-                    const fromDone = !!item.from_done
-                    const toDone = !!item.to_done
-                    const travelModeLabel =
-                      item.travel_mode === 'car'
-                        ? 'Car'
-                        : item.travel_mode === 'transit'
-                          ? 'Transit'
-                          : 'Walk'
+                          next.lng != null
+                        const manualInfo = isTravel
+                          ? manualTravelInfo[item.id]
+                          : null
+                        const hasManualTravelCoords =
+                          isTravel &&
+                          item.from_lat != null &&
+                          item.from_lng != null &&
+                          item.to_lat != null &&
+                          item.to_lng != null
+                        const fromDone = !!item.from_done
+                        const toDone = !!item.to_done
+                        const travelModeLabel =
+                          item.travel_mode === 'car'
+                            ? 'Car'
+                            : item.travel_mode === 'transit'
+                              ? 'Transit'
+                              : 'Walk'
 
-                    if (isTravel) {
-                      return (
-                        <div key={item.id} className="space-y-3">
-                          <div className="rounded-2xl border border-[color:var(--sand-300)] bg-white px-4 py-3">
-                            <div className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-start">
-                              <div>
-                                <p
-                                  className={`text-sm font-semibold ${
-                                    fromDone
-                                      ? 'text-[color:var(--ink-600)] line-through'
-                                      : 'text-[color:var(--ink-900)]'
-                                  }`}
-                                >
-                                  {item.from_place_name || 'From location'}
-                                </p>
-                                <p className="text-xs text-[color:var(--ink-600)]">
-                                  {item.start_time
-                                    ? formatTimeLabel(item.start_time)
-                                    : 'Anytime'}{' '}
-                                  · travel · From · {travelModeLabel}
-                                </p>
-                                {item.notes ? (
-                                  <p className="mt-2 text-xs text-[color:var(--ink-600)]">
-                                    {item.notes}
-                                  </p>
-                                ) : null}
+                        if (isTravel) {
+                          return (
+                            <div key={item.id} className="space-y-3">
+                              <div className="rounded-2xl border border-[color:var(--sand-300)] bg-white px-4 py-3">
+                                <div className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-start">
+                                  <div>
+                                    <p
+                                      className={`text-sm font-semibold ${
+                                        fromDone
+                                          ? 'text-[color:var(--ink-600)] line-through'
+                                          : 'text-[color:var(--ink-900)]'
+                                      }`}
+                                    >
+                                      {item.from_place_name || 'From location'}
+                                    </p>
+                                    <p className="text-xs text-[color:var(--ink-600)]">
+                                      {item.start_time
+                                        ? formatTimeLabel(item.start_time)
+                                        : 'Anytime'}{' '}
+                                      · travel · From · {travelModeLabel}
+                                    </p>
+                                    {item.notes ? (
+                                      <p className="mt-2 text-xs text-[color:var(--ink-600)]">
+                                        {item.notes}
+                                      </p>
+                                    ) : null}
+                                  </div>
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      handleToggleTravelDone(item, 'from_done')
+                                    }
+                                    className="h-fit rounded-full border border-[color:var(--sand-300)] bg-white px-3 py-1.5 text-[10px] font-semibold text-[color:var(--ink-700)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[color:var(--sun-500)] focus-visible:outline-offset-[3px]"
+                                  >
+                                    {fromDone ? 'Undo' : 'Done'}
+                                  </button>
+                                </div>
+                                <div className="mt-3">
+                                  <div className="grid w-full grid-cols-2 overflow-hidden rounded-full border border-[color:var(--sand-300)] bg-[color:var(--sand-100)] text-[10px] font-semibold text-[color:var(--ink-700)]">
+                                    <button
+                                      type="button"
+                                      onClick={() => openEditForm(item)}
+                                      className="px-2.5 py-1.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[color:var(--sun-500)] focus-visible:outline-offset-[3px]"
+                                    >
+                                      Edit
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleDelete(item)}
+                                      className="border-l border-[color:var(--sand-300)] px-2.5 py-1.5 text-[color:var(--clay-600)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[color:var(--sun-500)] focus-visible:outline-offset-[3px]"
+                                    >
+                                      Delete
+                                    </button>
+                                  </div>
+                                </div>
                               </div>
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  handleToggleTravelDone(item, 'from_done')
-                                }
-                                className="h-fit rounded-full border border-[color:var(--sand-300)] bg-white px-3 py-1.5 text-[10px] font-semibold text-[color:var(--ink-700)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[color:var(--sun-500)] focus-visible:outline-offset-[3px]"
+
+                              <a
+                                href={buildTravelDirectionsUrl(item)}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="block rounded-2xl border border-dashed border-[color:var(--sand-300)] px-4 py-3 text-xs text-[color:var(--ink-600)] transition hover:border-[color:var(--sun-400)] hover:text-[color:var(--ink-900)]"
                               >
-                                {fromDone ? 'Undo' : 'Done'}
-                              </button>
-                            </div>
-                            <div className="mt-3">
-                              <div className="grid w-full grid-cols-2 overflow-hidden rounded-full border border-[color:var(--sand-300)] bg-[color:var(--sand-100)] text-[10px] font-semibold text-[color:var(--ink-700)]">
-                                <button
-                                  type="button"
-                                  onClick={() => openEditForm(item)}
-                                  className="px-2.5 py-1.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[color:var(--sun-500)] focus-visible:outline-offset-[3px]"
-                                >
-                                  Edit
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => handleDelete(item)}
-                                  className="border-l border-[color:var(--sand-300)] px-2.5 py-1.5 text-[color:var(--clay-600)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[color:var(--sun-500)] focus-visible:outline-offset-[3px]"
-                                >
-                                  Delete
-                                </button>
-                              </div>
-                            </div>
-                          </div>
-
-                          <a
-                            href={buildTravelDirectionsUrl(item)}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="block rounded-2xl border border-dashed border-[color:var(--sand-300)] px-4 py-3 text-xs text-[color:var(--ink-600)] transition hover:border-[color:var(--sun-400)] hover:text-[color:var(--ink-900)]"
-                          >
-                            {hasManualTravelCoords ? (
-                              manualInfo ? (
-                                <span>
-                                  Travel {manualInfo.distanceMiles.toFixed(1)}{' '}
-                                  mi · {manualInfo.durationText} ·{' '}
-                                  {travelModeLabel}
-                                </span>
-                              ) : (
-                                <span>Calculating travel time…</span>
-                              )
-                            ) : (
-                              <span>Add locations to see travel time.</span>
-                            )}
-                          </a>
-
-                          <div className="rounded-2xl border border-[color:var(--sand-300)] bg-white px-4 py-3">
-                            <div className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-start">
-                              <div>
-                                <p
-                                  className={`text-sm font-semibold ${
-                                    toDone
-                                      ? 'text-[color:var(--ink-600)] line-through'
-                                      : 'text-[color:var(--ink-900)]'
-                                  }`}
-                                >
-                                  {item.to_place_name || 'To location'}
-                                </p>
-                                <p className="text-xs text-[color:var(--ink-600)]">
-                                  {item.start_time
-                                    ? formatTimeLabel(item.start_time)
-                                    : 'Anytime'}{' '}
-                                  · travel · To · {travelModeLabel}
-                                </p>
-                              </div>
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  handleToggleTravelDone(item, 'to_done')
-                                }
-                                className="h-fit rounded-full border border-[color:var(--sand-300)] bg-white px-3 py-1.5 text-[10px] font-semibold text-[color:var(--ink-700)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[color:var(--sun-500)] focus-visible:outline-offset-[3px]"
-                              >
-                                {toDone ? 'Undo' : 'Done'}
-                              </button>
-                            </div>
-                          </div>
-                          {showAutoTravelFromTravel ? (
-                            <a
-                              href={buildDirectionsUrlFromPoints(
-                                item.to_lat != null && item.to_lng != null
-                                  ? `${item.to_lat},${item.to_lng}`
-                                  : item.to_place_name || item.title,
-                                next.lat != null && next.lng != null
-                                  ? `${next.lat},${next.lng}`
-                                  : next.place_name || next.title,
-                                info?.mode || 'walk',
-                              )}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="block rounded-2xl border border-dashed border-[color:var(--sand-300)] px-4 py-3 text-xs text-[color:var(--ink-600)] transition hover:border-[color:var(--sun-400)] hover:text-[color:var(--ink-900)]"
-                            >
-                              {hasTravelCoords ? (
-                                info ? (
-                                  <span>
-                                    Travel {info.distanceMiles.toFixed(1)} mi ·{' '}
-                                    {info.durationText} ·{' '}
-                                    {info.mode === 'walk'
-                                      ? info.note
-                                        ? 'Walk (no transit)'
-                                        : 'Walk'
-                                      : 'Transit'}
-                                  </span>
+                                {hasManualTravelCoords ? (
+                                  manualInfo ? (
+                                    <span>
+                                      Travel{' '}
+                                      {manualInfo.distanceMiles.toFixed(1)} mi ·{' '}
+                                      {manualInfo.durationText} ·{' '}
+                                      {travelModeLabel}
+                                    </span>
+                                  ) : (
+                                    <span>Calculating travel time…</span>
+                                  )
                                 ) : (
-                                  <span>Calculating travel time…</span>
-                                )
-                              ) : (
-                                <span>Add locations to see travel time.</span>
-                              )}
-                            </a>
-                          ) : null}
-                        </div>
-                      )
-                    }
+                                  <span>Add locations to see travel time.</span>
+                                )}
+                              </a>
 
-                    return (
-                      <div key={item.id} className="space-y-3">
-                        <div className="rounded-2xl border border-[color:var(--sand-300)] bg-white px-4 py-3">
-                          <div className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-start">
-                            <div>
-                              <p
-                                className={`text-sm font-semibold ${
-                                  item.done && !isTravel
-                                    ? 'text-[color:var(--ink-600)] line-through'
-                                    : 'text-[color:var(--ink-900)]'
-                                }`}
-                              >
-                                {item.title}
-                              </p>
-                              <p className="text-xs text-[color:var(--ink-600)]">
-                                {item.start_time
-                                  ? formatTimeLabel(item.start_time)
-                                  : 'Anytime'}{' '}
-                                · {item.type}
-                              </p>
-                              {item.notes ? (
-                                <p className="mt-2 text-xs text-[color:var(--ink-600)]">
-                                  {item.notes}
-                                </p>
+                              <div className="rounded-2xl border border-[color:var(--sand-300)] bg-white px-4 py-3">
+                                <div className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-start">
+                                  <div>
+                                    <p
+                                      className={`text-sm font-semibold ${
+                                        toDone
+                                          ? 'text-[color:var(--ink-600)] line-through'
+                                          : 'text-[color:var(--ink-900)]'
+                                      }`}
+                                    >
+                                      {item.to_place_name || 'To location'}
+                                    </p>
+                                    <p className="text-xs text-[color:var(--ink-600)]">
+                                      {item.start_time
+                                        ? formatTimeLabel(item.start_time)
+                                        : 'Anytime'}{' '}
+                                      · travel · To · {travelModeLabel}
+                                    </p>
+                                  </div>
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      handleToggleTravelDone(item, 'to_done')
+                                    }
+                                    className="h-fit rounded-full border border-[color:var(--sand-300)] bg-white px-3 py-1.5 text-[10px] font-semibold text-[color:var(--ink-700)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[color:var(--sun-500)] focus-visible:outline-offset-[3px]"
+                                  >
+                                    {toDone ? 'Undo' : 'Done'}
+                                  </button>
+                                </div>
+                              </div>
+                              {showAutoTravelFromTravel ? (
+                                <a
+                                  href={buildDirectionsUrlFromPoints(
+                                    item.to_lat != null && item.to_lng != null
+                                      ? `${item.to_lat},${item.to_lng}`
+                                      : item.to_place_name || item.title,
+                                    next.lat != null && next.lng != null
+                                      ? `${next.lat},${next.lng}`
+                                      : next.place_name || next.title,
+                                    info?.mode || 'walk',
+                                  )}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="block rounded-2xl border border-dashed border-[color:var(--sand-300)] px-4 py-3 text-xs text-[color:var(--ink-600)] transition hover:border-[color:var(--sun-400)] hover:text-[color:var(--ink-900)]"
+                                >
+                                  {hasTravelCoords ? (
+                                    info ? (
+                                      <span>
+                                        Travel {info.distanceMiles.toFixed(1)}{' '}
+                                        mi · {info.durationText} ·{' '}
+                                        {info.mode === 'walk'
+                                          ? info.note
+                                            ? 'Walk (no transit)'
+                                            : 'Walk'
+                                          : 'Transit'}
+                                      </span>
+                                    ) : (
+                                      <span>Calculating travel time…</span>
+                                    )
+                                  ) : (
+                                    <span>
+                                      Add locations to see travel time.
+                                    </span>
+                                  )}
+                                </a>
                               ) : null}
                             </div>
-                            <button
-                              type="button"
-                              onClick={() => handleToggleDone(item)}
-                              className="h-fit rounded-full border border-[color:var(--sand-300)] bg-white px-3 py-1.5 text-[10px] font-semibold text-[color:var(--ink-700)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[color:var(--sun-500)] focus-visible:outline-offset-[3px]"
-                            >
-                              {item.done ? 'Undo' : 'Done'}
-                            </button>
-                          </div>
-                          <div className="mt-3">
-                            <div className="grid w-full grid-cols-2 overflow-hidden rounded-full border border-[color:var(--sand-300)] bg-[color:var(--sand-100)] text-[10px] font-semibold text-[color:var(--ink-700)]">
-                              <button
-                                type="button"
-                                onClick={() => openEditForm(item)}
-                                className="px-2.5 py-1.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[color:var(--sun-500)] focus-visible:outline-offset-[3px]"
-                              >
-                                Edit
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => handleDelete(item)}
-                                className="border-l border-[color:var(--sand-300)] px-2.5 py-1.5 text-[color:var(--clay-600)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[color:var(--sun-500)] focus-visible:outline-offset-[3px]"
-                              >
-                                Delete
-                              </button>
+                          )
+                        }
+
+                        return (
+                          <div key={item.id} className="space-y-3">
+                            <div className="rounded-2xl border border-[color:var(--sand-300)] bg-white px-4 py-3">
+                              <div className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-start">
+                                <div>
+                                  <p
+                                    className={`text-sm font-semibold ${
+                                      item.done && !isTravel
+                                        ? 'text-[color:var(--ink-600)] line-through'
+                                        : 'text-[color:var(--ink-900)]'
+                                    }`}
+                                  >
+                                    {item.title}
+                                  </p>
+                                  <p className="text-xs text-[color:var(--ink-600)]">
+                                    {item.start_time
+                                      ? formatTimeLabel(item.start_time)
+                                      : 'Anytime'}{' '}
+                                    · {item.type}
+                                  </p>
+                                  {item.notes ? (
+                                    <p className="mt-2 text-xs text-[color:var(--ink-600)]">
+                                      {item.notes}
+                                    </p>
+                                  ) : null}
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => handleToggleDone(item)}
+                                  className="h-fit rounded-full border border-[color:var(--sand-300)] bg-white px-3 py-1.5 text-[10px] font-semibold text-[color:var(--ink-700)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[color:var(--sun-500)] focus-visible:outline-offset-[3px]"
+                                >
+                                  {item.done ? 'Undo' : 'Done'}
+                                </button>
+                              </div>
+                              <div className="mt-3">
+                                <div className="grid w-full grid-cols-2 overflow-hidden rounded-full border border-[color:var(--sand-300)] bg-[color:var(--sand-100)] text-[10px] font-semibold text-[color:var(--ink-700)]">
+                                  <button
+                                    type="button"
+                                    onClick={() => openEditForm(item)}
+                                    className="px-2.5 py-1.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[color:var(--sun-500)] focus-visible:outline-offset-[3px]"
+                                  >
+                                    Edit
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDelete(item)}
+                                    className="border-l border-[color:var(--sand-300)] px-2.5 py-1.5 text-[color:var(--clay-600)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[color:var(--sun-500)] focus-visible:outline-offset-[3px]"
+                                  >
+                                    Delete
+                                  </button>
+                                </div>
+                              </div>
                             </div>
+                            {showAutoTravel ? (
+                              <a
+                                href={buildDirectionsUrl(
+                                  item,
+                                  next,
+                                  info?.mode || 'walk',
+                                )}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="block rounded-2xl border border-dashed border-[color:var(--sand-300)] px-4 py-3 text-xs text-[color:var(--ink-600)] transition hover:border-[color:var(--sun-400)] hover:text-[color:var(--ink-900)]"
+                              >
+                                {hasCoords ? (
+                                  info ? (
+                                    <span>
+                                      Travel {info.distanceMiles.toFixed(1)} mi
+                                      · {info.durationText} ·{' '}
+                                      {info.mode === 'walk'
+                                        ? info.note
+                                          ? 'Walk (no transit)'
+                                          : 'Walk'
+                                        : 'Transit'}
+                                    </span>
+                                  ) : (
+                                    <span>Calculating travel time…</span>
+                                  )
+                                ) : (
+                                  <span>Add locations to see travel time.</span>
+                                )}
+                              </a>
+                            ) : null}
                           </div>
-                        </div>
-                        {showAutoTravel ? (
-                          <a
-                            href={buildDirectionsUrl(
-                              item,
-                              next,
-                              info?.mode || 'walk',
-                            )}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="block rounded-2xl border border-dashed border-[color:var(--sand-300)] px-4 py-3 text-xs text-[color:var(--ink-600)] transition hover:border-[color:var(--sun-400)] hover:text-[color:var(--ink-900)]"
-                          >
-                            {hasCoords ? (
-                              info ? (
-                                <span>
-                                  Travel {info.distanceMiles.toFixed(1)} mi ·{' '}
-                                  {info.durationText} ·{' '}
-                                  {info.mode === 'walk'
-                                    ? info.note
-                                      ? 'Walk (no transit)'
-                                      : 'Walk'
-                                    : 'Transit'}
-                                </span>
-                              ) : (
-                                <span>Calculating travel time…</span>
-                              )
-                            ) : (
-                              <span>Add locations to see travel time.</span>
-                            )}
-                          </a>
-                        ) : null}
-                      </div>
-                    )
-                  })}
+                        )
+                      })}
+                    </div>
+                  ) : null}
                 </div>
-              </div>
-            ))
+              )
+            })
           ) : (
             <div className="rounded-[24px] border border-[rgba(234,203,213,0.7)] bg-[linear-gradient(135deg,rgba(248,237,240,0.9),rgba(254,249,250,0.95))] px-8 py-8 shadow-[var(--shadow-soft)]">
               <p className="text-sm text-[color:var(--ink-600)]">
