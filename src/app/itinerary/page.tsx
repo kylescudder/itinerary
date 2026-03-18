@@ -701,7 +701,9 @@ export default function ItineraryPage() {
                 pair.origin,
                 pair.destination,
                 google.maps.TravelMode.TRANSIT,
-                pair.departureTime || new Date(),
+                pair.departureTime && pair.departureTime > new Date()
+                  ? pair.departureTime
+                  : new Date(),
               )
               const transitLeg = transit.routes[0]?.legs?.[0]
               const transitSeconds =
@@ -807,9 +809,11 @@ export default function ItineraryPage() {
               ? google.maps.TravelMode.TRANSIT
               : google.maps.TravelMode.WALKING
         try {
-          const departureTime = item.start_time
-            ? new Date(item.start_time)
-            : new Date()
+          const now = new Date()
+          const departureTime =
+            item.start_time && new Date(item.start_time) > now
+              ? new Date(item.start_time)
+              : now
           const result = await requestRoute(
             item,
             travelMode,
