@@ -1266,17 +1266,6 @@ export default function ItineraryPage() {
         : item.to_place_name || item.title
     const mode = item.travel_mode || 'walk'
 
-    const isAppleDevice = /iPad|iPhone|iPod|Macintosh/i.test(
-      navigator.userAgent,
-    )
-
-    if (isAppleDevice) {
-      const flag = mode === 'transit' ? 'r' : mode === 'car' ? 'd' : 'w'
-      return `https://maps.apple.com/?saddr=${encodeURIComponent(
-        originValue,
-      )}&daddr=${encodeURIComponent(destinationValue)}&dirflg=${flag}`
-    }
-
     const travelMode =
       mode === 'transit' ? 'transit' : mode === 'car' ? 'driving' : 'walking'
     return `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(
@@ -1291,17 +1280,6 @@ export default function ItineraryPage() {
     destinationValue: string,
     mode: 'walk' | 'transit',
   ) => {
-    const isAppleDevice = /iPad|iPhone|iPod|Macintosh/i.test(
-      navigator.userAgent,
-    )
-
-    if (isAppleDevice) {
-      const flag = mode === 'transit' ? 'r' : 'w'
-      return `https://maps.apple.com/?saddr=${encodeURIComponent(
-        originValue,
-      )}&daddr=${encodeURIComponent(destinationValue)}&dirflg=${flag}`
-    }
-
     const travelMode = mode === 'transit' ? 'transit' : 'walking'
     return `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(
       originValue,
