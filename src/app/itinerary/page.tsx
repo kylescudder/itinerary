@@ -845,10 +845,28 @@ export default function ItineraryPage() {
   const isGroupComplete = (group: { items: ItineraryItem[] }) =>
     group.items.length > 0 && group.items.every(isItemFullyDone)
 
-  const [expandedDates, setExpandedDates] = useState<Set<string>>(new Set())
+  const [collapsedDates, setCollapsedDates] = useState<Set<string>>(new Set())
+  const prevCompleteRef = useRef<Set<string>>(new Set())
+
+  useEffect(() => {
+    const nowComplete = new Set(
+      grouped.filter(isGroupComplete).map((g) => g.date),
+    )
+    const newlyComplete = [...nowComplete].filter(
+      (d) => !prevCompleteRef.current.has(d),
+    )
+    if (newlyComplete.length > 0) {
+      setCollapsedDates((prev) => {
+        const next = new Set(prev)
+        for (const d of newlyComplete) next.add(d)
+        return next
+      })
+    }
+    prevCompleteRef.current = nowComplete
+  }, [grouped])
 
   const toggleDateCollapse = (date: string) => {
-    setExpandedDates((prev) => {
+    setCollapsedDates((prev) => {
       const next = new Set(prev)
       if (next.has(date)) {
         next.delete(date)
@@ -1656,7 +1674,7 @@ export default function ItineraryPage() {
           ) : grouped.length ? (
             grouped.map((group) => {
               const complete = isGroupComplete(group)
-              const collapsed = complete && !expandedDates.has(group.date)
+              const collapsed = collapsedDates.has(group.date)
               return (
                 <div
                   key={group.date}
@@ -1670,25 +1688,23 @@ export default function ItineraryPage() {
                     <p className="text-xs uppercase tracking-[0.3em] text-[color:var(--ink-600)]">
                       {formatDateLabel(group.date)}
                     </p>
-                    {complete ? (
-                      <span className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-[color:var(--ink-500)]">
-                        All done
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          width="12"
-                          height="12"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2.5"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          className={`transition-transform ${collapsed ? '' : 'rotate-180'}`}
-                        >
-                          <polyline points="6 9 12 15 18 9" />
-                        </svg>
-                      </span>
-                    ) : null}
+                    <span className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-[color:var(--ink-500)]">
+                      {complete ? 'All done' : null}
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="12"
+                        height="12"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2.5"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className={`transition-transform ${collapsed ? '' : 'rotate-180'}`}
+                      >
+                        <polyline points="6 9 12 15 18 9" />
+                      </svg>
+                    </span>
                   </button>
                   {!collapsed ? (
                     <div className="mt-4 space-y-3">
