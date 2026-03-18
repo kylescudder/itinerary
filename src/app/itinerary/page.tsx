@@ -796,9 +796,11 @@ export default function ItineraryPage() {
 
     const run = async () => {
       for (const item of travelItems) {
+        const existing = manualTravelInfo[item.id]
         if (
-          manualTravelInfo[item.id] &&
-          manualTravelInfo[item.id].mode === (item.travel_mode || 'walk')
+          existing &&
+          (existing.mode === (item.travel_mode || 'walk') ||
+            (item.travel_mode === 'transit' && existing.mode === 'walk'))
         )
           continue
         const mode = item.travel_mode || 'walk'
@@ -832,7 +834,8 @@ export default function ItineraryPage() {
               mode,
             },
           }))
-        } catch {
+        } catch (err) {
+          console.error(`Transit route failed for item ${item.id}:`, err)
           if (mode === 'transit') {
             try {
               const walking = await requestRoute(
