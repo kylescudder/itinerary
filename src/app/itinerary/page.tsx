@@ -829,7 +829,30 @@ export default function ItineraryPage() {
             },
           }))
         } catch {
-          // Ignore route errors
+          if (mode === 'transit') {
+            try {
+              const walking = await requestRoute(
+                item,
+                google.maps.TravelMode.WALKING,
+              )
+              const leg = walking.routes[0]?.legs?.[0]
+              const durationSeconds = leg?.duration?.value ?? 0
+              const distanceMeters = leg?.distance?.value ?? 0
+              setManualTravelInfo((prev) => ({
+                ...prev,
+                [item.id]: {
+                  durationText:
+                    leg?.duration?.text ||
+                    `${Math.round(durationSeconds / 60)} min`,
+                  distanceMiles: toMiles(distanceMeters),
+                  mode: 'walk',
+                  note: 'No transit route found',
+                },
+              }))
+            } catch {
+              // Ignore route errors
+            }
+          }
         }
       }
     }
@@ -1835,7 +1858,13 @@ export default function ItineraryPage() {
                                       Travel{' '}
                                       {manualInfo.distanceMiles.toFixed(1)} mi ·{' '}
                                       {manualInfo.durationText} ·{' '}
-                                      {travelModeLabel}
+                                      {manualInfo.mode === 'walk'
+                                        ? manualInfo.note
+                                          ? 'Walk (no transit)'
+                                          : 'Walk'
+                                        : manualInfo.mode === 'car'
+                                          ? 'Car'
+                                          : 'Transit'}
                                     </span>
                                   ) : (
                                     <span>Calculating travel time…</span>
