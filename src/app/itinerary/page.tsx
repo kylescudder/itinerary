@@ -887,9 +887,7 @@ export default function ItineraryPage() {
 
   const toLocalDateTimeInput = (value: string | null) => {
     if (!value) return ''
-    const date = new Date(value)
-    const offsetMs = date.getTimezoneOffset() * 60000
-    return new Date(date.getTime() - offsetMs).toISOString().slice(0, 16)
+    return value.slice(0, 16)
   }
 
   const resetPlaceFields = () => {
@@ -999,7 +997,7 @@ export default function ItineraryPage() {
         type,
         title: title.trim(),
         notes: notes.trim() || null,
-        start_time: startTime ? new Date(startTime).toISOString() : null,
+        start_time: startTime ? startTime + ':00.000Z' : null,
         done: false,
         travel_mode: isTravel ? travelMode : null,
         from_place_name: isTravel ? fromLabel : null,
@@ -1054,7 +1052,7 @@ export default function ItineraryPage() {
       const updates = {
         title: title.trim(),
         notes: notes.trim() || null,
-        start_time: startTime ? new Date(startTime).toISOString() : null,
+        start_time: startTime ? startTime + ':00.000Z' : null,
         travel_mode: isTravel ? travelMode : null,
         from_place_name: isTravel ? fromLabel : null,
         from_place_id: isTravel ? travelFromPlaceId : null,
