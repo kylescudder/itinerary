@@ -682,6 +682,7 @@ export default function ItineraryPage() {
             if (status === google.maps.DirectionsStatus.OK && result) {
               resolve(result)
             } else {
+              console.warn('[Directions] failed', { status, travelMode })
               reject(new Error(status))
             }
           },
@@ -791,6 +792,7 @@ export default function ItineraryPage() {
             if (status === google.maps.DirectionsStatus.OK && result) {
               resolve(result)
             } else {
+              console.warn('[Directions] failed', { status, travelMode })
               reject(new Error(status))
             }
           },
