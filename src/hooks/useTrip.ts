@@ -4,13 +4,24 @@ import { useCallback, useEffect, useState } from 'react'
 import type { Trip } from '../lib/types'
 import { getTrips } from '../lib/api'
 import { useAuth } from '../lib/auth'
-import { readActiveTripId, setActiveTripId } from '../lib/offline'
+import {
+  readActiveTripId,
+  readCachedTrips,
+  setActiveTripId,
+} from '../lib/offline'
+
+function resolveActiveTrip(trips: Trip[], preferredId: string | null) {
+  if (!trips.length) return null
+  return (preferredId ? trips.find((t) => t.id === preferredId) ?? null : null) ?? trips[0]
+}
 
 export function useTrip() {
   const { session } = useAuth()
-  const [trip, setTrip] = useState<Trip | null>(null)
-  const [trips, setTrips] = useState<Trip[]>([])
-  const [loading, setLoading] = useState(true)
+  const [trips, setTrips] = useState<Trip[]>(() => readCachedTrips())
+  const [trip, setTrip] = useState<Trip | null>(() =>
+    resolveActiveTrip(readCachedTrips(), readActiveTripId()),
+  )
+  const [loading, setLoading] = useState(() => readCachedTrips().length === 0)
   const [error, setError] = useState<string | null>(null)
 
   const loadTrip = useCallback(async () => {
@@ -21,7 +32,8 @@ export function useTrip() {
       return
     }
 
-    setLoading(true)
+    // Only show spinner when there's nothing cached to show yet
+    if (readCachedTrips().length === 0) setLoading(true)
     setError(null)
     try {
       const list = await getTrips()
@@ -31,9 +43,7 @@ export function useTrip() {
         setActiveTripId(null)
       } else {
         const preferredId = readActiveTripId()
-        const active =
-          (preferredId && list.find((entry) => entry.id === preferredId)) ||
-          list[0]
+        const active = resolveActiveTrip(list, preferredId)!
         setTrip(active)
         setActiveTripId(active.id)
       }
