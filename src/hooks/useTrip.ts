@@ -12,7 +12,10 @@ import {
 
 function resolveActiveTrip(trips: Trip[], preferredId: string | null) {
   if (!trips.length) return null
-  return (preferredId ? trips.find((t) => t.id === preferredId) ?? null : null) ?? trips[0]
+  return (
+    (preferredId ? (trips.find((t) => t.id === preferredId) ?? null) : null) ??
+    trips[0]
+  )
 }
 
 export function useTrip() {
