@@ -812,9 +812,9 @@ export default function ItineraryPage() {
               ? google.maps.TravelMode.TRANSIT
               : google.maps.TravelMode.WALKING
         try {
-          const departureTime = item.start_time
-            ? new Date(item.start_time)
-            : new Date()
+          const rawDt = item.start_time ? new Date(item.start_time) : null
+          const departureTime =
+            rawDt && !isNaN(rawDt.getTime()) ? rawDt : new Date()
           const result = await requestRoute(
             item,
             travelMode,
@@ -834,7 +834,40 @@ export default function ItineraryPage() {
             },
           }))
         } catch {
-          // Ignore route errors
+          if (mode === 'transit') {
+            // Transit failed — fall back to walking so stale walk data isn't
+            // displayed with the wrong "Transit" label
+            try {
+              const walkResult = await requestRoute(
+                item,
+                google.maps.TravelMode.WALKING,
+              )
+              const walkLeg = walkResult.routes[0]?.legs?.[0]
+              const walkSeconds = walkLeg?.duration?.value ?? 0
+              const walkMeters = walkLeg?.distance?.value ?? 0
+              setManualTravelInfo((prev) => ({
+                ...prev,
+                [item.id]: {
+                  durationText:
+                    walkLeg?.duration?.text ||
+                    `${Math.round(walkSeconds / 60)} min`,
+                  distanceMiles: toMiles(walkMeters),
+                  mode: 'transit',
+                  note: 'transit_unavailable',
+                },
+              }))
+            } catch {
+              setManualTravelInfo((prev) => ({
+                ...prev,
+                [item.id]: {
+                  durationText: 'Unavailable',
+                  distanceMiles: 0,
+                  mode: 'transit',
+                  note: 'transit_unavailable',
+                },
+              }))
+            }
+          }
         }
       }
     }
@@ -1852,7 +1885,9 @@ export default function ItineraryPage() {
                                       Travel{' '}
                                       {manualInfo.distanceMiles.toFixed(1)} mi ·{' '}
                                       {manualInfo.durationText} ·{' '}
-                                      {travelModeLabel}
+                                      {manualInfo.note === 'transit_unavailable'
+                                        ? 'Walk (no transit)'
+                                        : travelModeLabel}
                                     </span>
                                   ) : (
                                     <span>Calculating travel time…</span>
