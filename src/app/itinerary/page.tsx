@@ -1518,7 +1518,7 @@ export default function ItineraryPage() {
           type="datetime-local"
           value={startTime}
           onChange={(event) => setStartTime(event.target.value)}
-          className="mt-2 w-full rounded-2xl border border-[color:var(--sand-300)] bg-white px-4 py-3 text-sm"
+          className="mt-2 w-full min-w-0 rounded-2xl border border-[color:var(--sand-300)] bg-white px-4 py-3 text-sm [box-sizing:border-box]"
         />
       </label>
       <label className="text-sm font-semibold text-[color:var(--ink-700)]">
@@ -2164,7 +2164,7 @@ export default function ItineraryPage() {
                 Close
               </button>
             </div>
-            <div className="mt-6 max-h-[70vh] overflow-y-auto pr-1">
+            <div className="mt-6 max-h-[70vh] overflow-x-hidden overflow-y-auto pr-1">
               {addForm}
             </div>
           </div>
