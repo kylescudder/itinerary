@@ -14,6 +14,7 @@ import {
 import { useAuth } from '../../lib/auth'
 import { useTrip } from '../../hooks/useTrip'
 import { useOfflineSync } from '../../hooks/useOfflineSync'
+import { readCachedItineraryItems } from '../../lib/offline'
 import type { ItineraryItem } from '../../lib/types'
 import {
   formatDateLabel,
@@ -49,6 +50,7 @@ export default function ItineraryPage() {
   const pullStartY = useRef<number | null>(null)
   const isPulling = useRef(false)
   const savedScrollY = useRef(0)
+  const tripItemsCachedRef = useRef(false)
   const [title, setTitle] = useState('')
   const [notes, setNotes] = useState('')
   const [type, setType] = useState(itemTypes[0])
@@ -144,15 +146,18 @@ export default function ItineraryPage() {
 
   useEffect(() => {
     if (!trip) return
-    setItems([])
+    const cached = readCachedItineraryItems(trip.id)
+    tripItemsCachedRef.current = cached.length > 0
+    setItems(cached)
     setTravelInfo({})
     setManualTravelInfo({})
   }, [trip?.id])
 
   const loadItems = useCallback(async () => {
     if (!trip) return
-    setLoading(true)
     setError(null)
+    // Only show loading spinner when there are no cached items to display
+    if (!tripItemsCachedRef.current) setLoading(true)
     try {
       const data = await getItineraryItems(trip.id)
       setItems(data)
