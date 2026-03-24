@@ -1514,12 +1514,26 @@ export default function ItineraryPage() {
       </label>
       <label className="text-sm font-semibold text-[color:var(--ink-700)]">
         Start time
-        <input
-          type="datetime-local"
-          value={startTime}
-          onChange={(event) => setStartTime(event.target.value)}
-          className="mt-2 w-full min-w-0 rounded-2xl border border-[color:var(--sand-300)] bg-white px-4 py-3 text-sm [box-sizing:border-box]"
-        />
+        <div className="mt-2 flex gap-2">
+          <input
+            type="date"
+            value={startTime ? startTime.substring(0, 10) : ''}
+            onChange={(event) => {
+              const time = startTime.length > 10 ? startTime.substring(11) : ''
+              setStartTime(event.target.value + (time ? 'T' + time : ''))
+            }}
+            className="min-w-0 flex-1 rounded-2xl border border-[color:var(--sand-300)] bg-white px-3 py-3 text-sm"
+          />
+          <input
+            type="time"
+            value={startTime.length > 10 ? startTime.substring(11) : ''}
+            onChange={(event) => {
+              const date = startTime.substring(0, 10)
+              setStartTime((date || '') + 'T' + event.target.value)
+            }}
+            className="min-w-0 w-32 rounded-2xl border border-[color:var(--sand-300)] bg-white px-3 py-3 text-sm"
+          />
+        </div>
       </label>
       <label className="text-sm font-semibold text-[color:var(--ink-700)]">
         Notes
