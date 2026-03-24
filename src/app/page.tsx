@@ -26,12 +26,19 @@ export default function HomePage() {
   const [hasScrolled, setHasScrolled] = useState(false)
 
   useEffect(() => {
-    if (authLoading || tripLoading) return
+    if (authLoading) return
     if (!session?.user) return
-    if (trip) {
+    // Try to redirect immediately using localStorage before trip API loads
+    const storedTripId =
+      typeof window !== 'undefined'
+        ? localStorage.getItem('itinerary:active-trip-id')
+        : null
+    if (storedTripId) {
       router.replace('/itinerary')
-    } else {
-      router.replace('/trip')
+      return
+    }
+    if (!tripLoading) {
+      router.replace(trip ? '/itinerary' : '/trip')
     }
   }, [authLoading, router, session?.user, trip, tripLoading])
 
@@ -48,6 +55,13 @@ export default function HomePage() {
     window.addEventListener('scroll', updateScroll, { passive: true })
     return () => window.removeEventListener('scroll', updateScroll)
   }, [])
+
+  // While auth is loading or user is logged in (redirect pending), show minimal placeholder
+  if (authLoading || session?.user) {
+    return (
+      <div className="min-h-screen bg-[linear-gradient(180deg,#fbecef_0%,#f6eef2_45%,#f8f3f2_100%)]" />
+    )
+  }
 
   return (
     <main className="min-h-screen overflow-hidden bg-[linear-gradient(180deg,#fbecef_0%,#f6eef2_45%,#f8f3f2_100%)]">
@@ -211,16 +225,14 @@ export default function HomePage() {
             </p>
           </div>
         </div>
-        <div className="mt-8 empty:hidden empty:mt-0">
-          {session?.user ? (
-            <button
-              className="rounded-full bg-[color:var(--ink-900)] px-[22px] py-3 text-[0.9rem] font-bold tracking-[0.02em] text-[color:var(--sand-50)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[color:var(--sun-500)] focus-visible:outline-offset-[3px]"
-              onClick={() => router.push(trip ? '/itinerary' : '/trip')}
-              type="button"
-            >
-              Go to your plan
-            </button>
-          ) : null}
+        <div className="mt-8">
+          <button
+            type="button"
+            onClick={() => router.push('/login')}
+            className="rounded-full bg-[color:var(--ink-900)] px-[22px] py-3 text-[0.9rem] font-bold tracking-[0.02em] text-[color:var(--sand-50)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[color:var(--sun-500)] focus-visible:outline-offset-[3px]"
+          >
+            Get started
+          </button>
         </div>
       </section>
 
