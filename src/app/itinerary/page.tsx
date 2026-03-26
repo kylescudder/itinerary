@@ -125,8 +125,6 @@ export default function ItineraryPage() {
     const cached = readCachedItineraryItems(trip.id)
     tripItemsCachedRef.current = cached.length > 0
     setItems(cached)
-    setTravelInfo({})
-    setManualTravelInfo({})
   }, [trip?.id])
 
   const loadItems = useCallback(async () => {
