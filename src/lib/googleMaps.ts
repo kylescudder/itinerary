@@ -13,10 +13,9 @@ export async function loadGoogleMaps() {
     throw new Error('Missing NEXT_PUBLIC_GOOGLE_MAPS_API_KEY')
   }
 
-  setOptions({ key: apiKey, libraries: ['places', 'routes'] })
+  setOptions({ key: apiKey, libraries: ['places'] })
   loaderPromise = Promise.all([
     importLibrary('places'),
-    importLibrary('routes'),
   ]).then(() => window.google)
   return loaderPromise
 }

@@ -115,30 +115,6 @@ export default function ItineraryPage() {
     null,
   )
   const placesRef = useRef<google.maps.places.PlacesService | null>(null)
-  const directionsRef = useRef<google.maps.DirectionsService | null>(null)
-  const [directionsReady, setDirectionsReady] = useState(false)
-  const [travelInfo, setTravelInfo] = useState<
-    Record<
-      string,
-      {
-        durationText: string
-        distanceMiles: number
-        mode: 'walk' | 'transit'
-        note?: string
-      }
-    >
-  >({})
-  const [manualTravelInfo, setManualTravelInfo] = useState<
-    Record<
-      string,
-      {
-        durationText: string
-        distanceMiles: number
-        mode: 'walk' | 'car' | 'transit'
-        note?: string
-      }
-    >
-  >({})
   const tripDateRange = useMemo(
     () => formatTripDateRange(trip?.start_date, trip?.end_date),
     [trip?.start_date, trip?.end_date],
@@ -239,10 +215,6 @@ export default function ItineraryPage() {
         if (!placesRef.current) {
           const container = document.createElement('div')
           placesRef.current = new google.maps.places.PlacesService(container)
-        }
-        if (!directionsRef.current) {
-          directionsRef.current = new google.maps.DirectionsService()
-          setDirectionsReady(true)
         }
       } catch (err) {
         if (mounted) {
@@ -589,291 +561,6 @@ export default function ItineraryPage() {
     }
   }, [travelToQuery])
 
-  useEffect(() => {
-    const service = directionsRef.current
-    if (!service) return
-    if (items.length < 2) return
-
-    const pairs = [] as Array<{
-      key: string
-      origin: { lat: number; lng: number }
-      destination: { lat: number; lng: number }
-      departureTime?: Date
-    }>
-
-    for (let i = 0; i < items.length - 1; i += 1) {
-      const origin = items[i]
-      const destination = items[i + 1]
-      if (!destination) continue
-
-      if (origin.type === 'travel' && destination.type !== 'travel') {
-        if (
-          origin.to_lat == null ||
-          origin.to_lng == null ||
-          destination.lat == null ||
-          destination.lng == null
-        ) {
-          continue
-        }
-        if (
-          origin.to_lat === destination.lat &&
-          origin.to_lng === destination.lng
-        ) {
-          continue
-        }
-        const key = `travel:${origin.id}:${destination.id}`
-        if (travelInfo[key]) continue
-        pairs.push({
-          key,
-          origin: { lat: origin.to_lat, lng: origin.to_lng },
-          destination: { lat: destination.lat, lng: destination.lng },
-          departureTime: destination.start_time
-            ? new Date(destination.start_time)
-            : undefined,
-        })
-        continue
-      }
-
-      if (origin.type === 'travel' || destination.type === 'travel') {
-        continue
-      }
-      if (
-        origin.lat == null ||
-        origin.lng == null ||
-        destination.lat == null ||
-        destination.lng == null
-      ) {
-        continue
-      }
-      if (origin.lat === destination.lat && origin.lng === destination.lng) {
-        continue
-      }
-      const key = `${origin.id}:${destination.id}`
-      if (travelInfo[key]) continue
-      pairs.push({
-        key,
-        origin: { lat: origin.lat, lng: origin.lng },
-        destination: { lat: destination.lat, lng: destination.lng },
-        departureTime: destination.start_time
-          ? new Date(destination.start_time)
-          : undefined,
-      })
-    }
-
-    if (!pairs.length) return
-
-    const toMiles = (meters: number) => meters / 1609.344
-
-    const requestRoute = (
-      origin: { lat: number; lng: number },
-      destination: { lat: number; lng: number },
-      travelMode: google.maps.TravelMode,
-      departureTime?: Date,
-    ) =>
-      new Promise<google.maps.DirectionsResult>((resolve, reject) => {
-        service.route(
-          {
-            origin,
-            destination,
-            travelMode,
-            transitOptions: departureTime ? { departureTime } : undefined,
-          },
-          (result, status) => {
-            if (status === google.maps.DirectionsStatus.OK && result) {
-              resolve(result)
-            } else {
-              reject(new Error(status))
-            }
-          },
-        )
-      })
-
-    const run = async () => {
-      for (const pair of pairs) {
-        const key = pair.key
-        try {
-          const walking = await requestRoute(
-            pair.origin,
-            pair.destination,
-            google.maps.TravelMode.WALKING,
-          )
-          const leg = walking.routes[0]?.legs?.[0]
-          const walkingSeconds = leg?.duration?.value ?? 0
-          const distanceMeters = leg?.distance?.value ?? 0
-          if (walkingSeconds > 1800) {
-            try {
-              const transit = await requestRoute(
-                pair.origin,
-                pair.destination,
-                google.maps.TravelMode.TRANSIT,
-                pair.departureTime || new Date(),
-              )
-              const transitLeg = transit.routes[0]?.legs?.[0]
-              const transitSeconds =
-                transitLeg?.duration?.value ?? walkingSeconds
-              const transitMeters =
-                transitLeg?.distance?.value ?? distanceMeters
-              setTravelInfo((prev) => ({
-                ...prev,
-                [key]: {
-                  durationText:
-                    transitLeg?.duration?.text ||
-                    `${Math.round(transitSeconds / 60)} min`,
-                  distanceMiles: toMiles(transitMeters),
-                  mode: 'transit',
-                },
-              }))
-            } catch {
-              setTravelInfo((prev) => ({
-                ...prev,
-                [key]: {
-                  durationText:
-                    leg?.duration?.text ||
-                    `${Math.round(walkingSeconds / 60)} min`,
-                  distanceMiles: toMiles(distanceMeters),
-                  mode: 'walk',
-                  note: 'No transit route found',
-                },
-              }))
-            }
-          } else {
-            setTravelInfo((prev) => ({
-              ...prev,
-              [key]: {
-                durationText:
-                  leg?.duration?.text ||
-                  `${Math.round(walkingSeconds / 60)} min`,
-                distanceMiles: toMiles(distanceMeters),
-                mode: 'walk',
-              },
-            }))
-          }
-        } catch {
-          // Ignore route errors
-        }
-      }
-    }
-
-    run()
-  }, [items, travelInfo, directionsReady])
-
-  useEffect(() => {
-    const service = directionsRef.current
-    if (!service) return
-
-    const travelItems = items.filter(
-      (item) =>
-        item.type === 'travel' &&
-        item.from_lat != null &&
-        item.from_lng != null &&
-        item.to_lat != null &&
-        item.to_lng != null,
-    )
-
-    if (!travelItems.length) return
-
-    const toMiles = (meters: number) => meters / 1609.344
-
-    const requestRoute = (
-      item: ItineraryItem,
-      travelMode: google.maps.TravelMode,
-      departureTime?: Date,
-    ) =>
-      new Promise<google.maps.DirectionsResult>((resolve, reject) => {
-        service.route(
-          {
-            origin: { lat: item.from_lat!, lng: item.from_lng! },
-            destination: { lat: item.to_lat!, lng: item.to_lng! },
-            travelMode,
-            transitOptions: departureTime ? { departureTime } : undefined,
-          },
-          (result, status) => {
-            if (status === google.maps.DirectionsStatus.OK && result) {
-              resolve(result)
-            } else {
-              reject(new Error(status))
-            }
-          },
-        )
-      })
-
-    const run = async () => {
-      for (const item of travelItems) {
-        if (
-          manualTravelInfo[item.id] &&
-          manualTravelInfo[item.id].mode === (item.travel_mode || 'walk')
-        )
-          continue
-        const mode = item.travel_mode || 'walk'
-        const travelMode =
-          mode === 'car'
-            ? google.maps.TravelMode.DRIVING
-            : mode === 'transit'
-              ? google.maps.TravelMode.TRANSIT
-              : google.maps.TravelMode.WALKING
-        try {
-          const rawDt = item.start_time ? new Date(item.start_time) : null
-          const departureTime =
-            rawDt && !isNaN(rawDt.getTime()) ? rawDt : new Date()
-          const result = await requestRoute(
-            item,
-            travelMode,
-            mode === 'transit' ? departureTime : undefined,
-          )
-          const leg = result.routes[0]?.legs?.[0]
-          const durationSeconds = leg?.duration?.value ?? 0
-          const distanceMeters = leg?.distance?.value ?? 0
-          setManualTravelInfo((prev) => ({
-            ...prev,
-            [item.id]: {
-              durationText:
-                leg?.duration?.text ||
-                `${Math.round(durationSeconds / 60)} min`,
-              distanceMiles: toMiles(distanceMeters),
-              mode,
-            },
-          }))
-        } catch {
-          if (mode === 'transit') {
-            // Transit failed — fall back to walking so stale walk data isn't
-            // displayed with the wrong "Transit" label
-            try {
-              const walkResult = await requestRoute(
-                item,
-                google.maps.TravelMode.WALKING,
-              )
-              const walkLeg = walkResult.routes[0]?.legs?.[0]
-              const walkSeconds = walkLeg?.duration?.value ?? 0
-              const walkMeters = walkLeg?.distance?.value ?? 0
-              setManualTravelInfo((prev) => ({
-                ...prev,
-                [item.id]: {
-                  durationText:
-                    walkLeg?.duration?.text ||
-                    `${Math.round(walkSeconds / 60)} min`,
-                  distanceMiles: toMiles(walkMeters),
-                  mode: 'transit',
-                  note: 'transit_unavailable',
-                },
-              }))
-            } catch {
-              setManualTravelInfo((prev) => ({
-                ...prev,
-                [item.id]: {
-                  durationText: 'Unavailable',
-                  distanceMiles: 0,
-                  mode: 'transit',
-                  note: 'transit_unavailable',
-                },
-              }))
-            }
-          }
-        }
-      }
-    }
-
-    run()
-  }, [items, manualTravelInfo, directionsReady])
 
   const grouped = useMemo(() => groupItemsByDate(items), [items])
 
@@ -1775,17 +1462,6 @@ export default function ItineraryPage() {
                           isTravel &&
                           next.type !== 'travel' &&
                           !sameLocationFromTravel
-                        const key = showAutoTravel
-                          ? `${item.id}:${next.id}`
-                          : null
-                        const travelKey = showAutoTravelFromTravel
-                          ? `travel:${item.id}:${next.id}`
-                          : null
-                        const info = key
-                          ? travelInfo[key]
-                          : travelKey
-                            ? travelInfo[travelKey]
-                            : null
                         const hasCoords =
                           showAutoTravel &&
                           item.lat != null &&
@@ -1798,9 +1474,6 @@ export default function ItineraryPage() {
                           item.to_lng != null &&
                           next.lat != null &&
                           next.lng != null
-                        const manualInfo = isTravel
-                          ? manualTravelInfo[item.id]
-                          : null
                         const hasManualTravelCoords =
                           isTravel &&
                           item.from_lat != null &&
@@ -1873,29 +1546,16 @@ export default function ItineraryPage() {
                                 </div>
                               </div>
 
-                              <a
-                                href={buildTravelDirectionsUrl(item)}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="block rounded-2xl border border-dashed border-[color:var(--sand-300)] px-4 py-3 text-xs text-[color:var(--ink-600)] transition hover:border-[color:var(--sun-400)] hover:text-[color:var(--ink-900)]"
-                              >
-                                {hasManualTravelCoords ? (
-                                  manualInfo ? (
-                                    <span>
-                                      Travel{' '}
-                                      {manualInfo.distanceMiles.toFixed(1)} mi ·{' '}
-                                      {manualInfo.durationText} ·{' '}
-                                      {manualInfo.note === 'transit_unavailable'
-                                        ? 'Walk (no transit)'
-                                        : travelModeLabel}
-                                    </span>
-                                  ) : (
-                                    <span>Calculating travel time…</span>
-                                  )
-                                ) : (
-                                  <span>Add locations to see travel time.</span>
-                                )}
-                              </a>
+                              {hasManualTravelCoords ? (
+                                <a
+                                  href={buildTravelDirectionsUrl(item)}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="block rounded-2xl border border-dashed border-[color:var(--sand-300)] px-4 py-3 text-center text-xs font-semibold text-[color:var(--ink-700)] transition hover:border-[color:var(--sun-400)] hover:text-[color:var(--ink-900)]"
+                                >
+                                  Open in Maps · {travelModeLabel}
+                                </a>
+                              ) : null}
 
                               <div className="rounded-2xl border border-[color:var(--sand-300)] bg-white px-4 py-3">
                                 <div className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-start">
@@ -1927,7 +1587,7 @@ export default function ItineraryPage() {
                                   </button>
                                 </div>
                               </div>
-                              {showAutoTravelFromTravel ? (
+                              {showAutoTravelFromTravel && hasTravelCoords ? (
                                 <a
                                   href={buildDirectionsUrlFromPoints(
                                     item.to_lat != null && item.to_lng != null
@@ -1936,31 +1596,13 @@ export default function ItineraryPage() {
                                     next.lat != null && next.lng != null
                                       ? `${next.lat},${next.lng}`
                                       : next.place_name || next.title,
-                                    info?.mode || 'walk',
+                                    'walk',
                                   )}
                                   target="_blank"
                                   rel="noreferrer"
-                                  className="block rounded-2xl border border-dashed border-[color:var(--sand-300)] px-4 py-3 text-xs text-[color:var(--ink-600)] transition hover:border-[color:var(--sun-400)] hover:text-[color:var(--ink-900)]"
+                                  className="block rounded-2xl border border-dashed border-[color:var(--sand-300)] px-4 py-3 text-center text-xs font-semibold text-[color:var(--ink-700)] transition hover:border-[color:var(--sun-400)] hover:text-[color:var(--ink-900)]"
                                 >
-                                  {hasTravelCoords ? (
-                                    info ? (
-                                      <span>
-                                        Travel {info.distanceMiles.toFixed(1)}{' '}
-                                        mi · {info.durationText} ·{' '}
-                                        {info.mode === 'walk'
-                                          ? info.note
-                                            ? 'Walk (no transit)'
-                                            : 'Walk'
-                                          : 'Transit'}
-                                      </span>
-                                    ) : (
-                                      <span>Calculating travel time…</span>
-                                    )
-                                  ) : (
-                                    <span>
-                                      Add locations to see travel time.
-                                    </span>
-                                  )}
+                                  Get directions to next stop
                                 </a>
                               ) : null}
                             </div>
@@ -2020,34 +1662,14 @@ export default function ItineraryPage() {
                                 </div>
                               </div>
                             </div>
-                            {showAutoTravel ? (
+                            {showAutoTravel && hasCoords ? (
                               <a
-                                href={buildDirectionsUrl(
-                                  item,
-                                  next,
-                                  info?.mode || 'walk',
-                                )}
+                                href={buildDirectionsUrl(item, next, 'walk')}
                                 target="_blank"
                                 rel="noreferrer"
-                                className="block rounded-2xl border border-dashed border-[color:var(--sand-300)] px-4 py-3 text-xs text-[color:var(--ink-600)] transition hover:border-[color:var(--sun-400)] hover:text-[color:var(--ink-900)]"
+                                className="block rounded-2xl border border-dashed border-[color:var(--sand-300)] px-4 py-3 text-center text-xs font-semibold text-[color:var(--ink-700)] transition hover:border-[color:var(--sun-400)] hover:text-[color:var(--ink-900)]"
                               >
-                                {hasCoords ? (
-                                  info ? (
-                                    <span>
-                                      Travel {info.distanceMiles.toFixed(1)} mi
-                                      · {info.durationText} ·{' '}
-                                      {info.mode === 'walk'
-                                        ? info.note
-                                          ? 'Walk (no transit)'
-                                          : 'Walk'
-                                        : 'Transit'}
-                                    </span>
-                                  ) : (
-                                    <span>Calculating travel time…</span>
-                                  )
-                                ) : (
-                                  <span>Add locations to see travel time.</span>
-                                )}
+                                Get directions to next stop
                               </a>
                             ) : null}
                           </div>
