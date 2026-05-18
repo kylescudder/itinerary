@@ -43,7 +43,7 @@
     "autoprefixer": "10.4.20",
     "dotenv": "16.4.5",
     "drizzle-kit": "0.31.0",
-    "drizzle-orm": "0.44.4",
+    "drizzle-orm": "0.45.2",
     "jsdom": "27.0.0",
     "postcss": "8.5.3",
     "prettier": "3.5.3",
