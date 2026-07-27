@@ -18,7 +18,7 @@
         "tailwindcss": "4.1.18",
       },
       "devDependencies": {
-        "@netlify/plugin-nextjs": "5.14.0",
+        "@netlify/plugin-nextjs": "5.15.13",
         "@tailwindcss/postcss": "4.1.18",
         "@testing-library/dom": "10.4.0",
         "@testing-library/react": "16.2.0",
@@ -187,7 +187,7 @@
 
     "@jridgewell/trace-mapping": ["@jridgewell/trace-mapping@0.3.31", "", { "dependencies": { "@jridgewell/resolve-uri": "^3.1.0", "@jridgewell/sourcemap-codec": "^1.4.14" } }, "sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw=="],
 
-    "@netlify/plugin-nextjs": ["@netlify/plugin-nextjs@5.14.0", "", {}, "sha512-8WEnVm88Ed6v6j/D0iqXDSnAW8Mf9P2CDVgBG3x2+vkiEI48X6Na7KnoQRyi6oulgA6foHIPWqgQIClsPiW20A=="],
+    "@netlify/plugin-nextjs": ["@netlify/plugin-nextjs@5.15.13", "", {}, "sha512-gBmWtgG13ZW4ytNMCvacfwZemtdtV/Ekc+6RBYvI5fndjmDvKxgFHylsw7oli+PHMGAtNqaJrN8QccGnDReu6A=="],
 
     "@next/env": ["@next/env@16.1.6", "", {}, "sha512-N1ySLuZjnAtN3kFnwhAwPvZah8RJxKasD7x1f8shFqhncnWZn4JMfg37diLNuoHsLAlrDfM3g4mawVdtAG8XLQ=="],
 
