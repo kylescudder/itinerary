@@ -42,7 +42,7 @@
     "@types/react-dom": "19.2.0",
     "autoprefixer": "10.4.20",
     "dotenv": "16.4.5",
-    "drizzle-kit": "0.31.0",
+    "drizzle-kit": "0.31.10",
     "drizzle-orm": "0.44.4",
     "jsdom": "27.0.0",
     "postcss": "8.5.3",
