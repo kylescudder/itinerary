@@ -41,7 +41,7 @@
     "@types/react": "19.2.0",
     "@types/react-dom": "19.2.0",
     "autoprefixer": "10.4.20",
-    "dotenv": "16.4.5",
+    "dotenv": "16.6.1",
     "drizzle-kit": "0.31.0",
     "drizzle-orm": "0.44.4",
     "jsdom": "27.0.0",
