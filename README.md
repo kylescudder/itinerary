@@ -27,6 +27,10 @@ STRIPE_PRICE_ID=...
 bun --bun run dev
 ```
 
+## Database
+
+`bun run db:migrate`, `db:push` and `db:studio` connect to `DATABASE_URL` through drizzle-kit, which uses the `postgres` (postgres.js) driver. postgres.js v4 retries a connection the server refuses for too many connections (`53300`) until `connect_timeout` has passed (30 s by default), so `drizzle.config.ts` sets it to 2 s through `PGCONNECT_TIMEOUT`: a refused connection fails in about 3 s. A `connect_timeout` in `DATABASE_URL` or an explicit `PGCONNECT_TIMEOUT` overrides it.
+
 ## Supabase OAuth Redirects
 
 Add these redirect URLs in Supabase Auth settings:
